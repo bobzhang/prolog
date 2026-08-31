@@ -166,7 +166,7 @@ fn is_ground(binds : Bindings, t : Term) -> Bool {
 fn rename_clause(c : Clause, id : Int) -> Clause {
   fn go(t : Term) -> Term {
     match t {
-      Var(n) => Var("\{n}_\{id}")
+      Var(n) => Var("~\{n}_\{id}")
       Compound(f, args) => Compound(f, args.map(go))
       _ => t
     }
@@ -200,6 +200,9 @@ pub fn Program::query_with(
   goal : String,
   opts : Options,
 ) -> QueryResult raise PrologError {
+  if opts.max_depth < 0 || opts.max_steps < 0 || opts.max_solutions < 0 {
+    raise PrologError::Eval("search options must be non-negative")
+  }
   let (g, vars) = parse_goal(goal)
   let st : SearchState = {
     steps: 0,
@@ -229,7 +232,7 @@ pub fn Program::query_with(
     }
   }
   if opts.ilds {
-    let mut d = 1
+    let mut d = 0
     while d <= opts.max_depth {
       run_round(d)
       // Stop when the round completed, or when the search budget (rather

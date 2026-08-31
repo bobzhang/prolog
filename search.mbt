@@ -12,8 +12,9 @@ priv enum Choice {
   /// Try clause `idx` of predicate f/arity for goal `g`, restoring the
   /// bindings, depth, and remaining goals captured when it was pushed.
   Clause(String, Int, Int, Term, Array[(Term, Int)], Bindings, Int)
-  /// Continue with an alternative goal (disjunction branch / call).
-  Goal(Term, Array[(Term, Int)], Bindings)
+  /// Continue with an alternative goal (disjunction branch / call), at its
+  /// original depth.
+  Goal(Term, Array[(Term, Int)], Bindings, Int)
   /// Try the `idx`-th precomputed solution of a built-in predicate.
   Solutions(Array[Bindings], Int, Array[(Term, Int)])
   /// Cut barrier: cut removes choice points up to and including it.
@@ -50,9 +51,9 @@ fn run_search(
           pending = Some((f, ar, idx, g, rest, b0, d0))
           return
         }
-        Goal(g, rest, b0) => {
+        Goal(g, rest, b0, gd0) => {
           binds = b0
-          goals = [(g, 0), ..rest]
+          goals = [(g, gd0), ..rest]
           gi = 0
           return
         }
@@ -111,10 +112,6 @@ fn run_search(
   }
 
   while true {
-    if st.steps >= opts.max_steps {
-      st.truncated = true
-      return
-    }
     // Resume a pending clause.
     match pending {
       Some((f, ar, idx, g, rest, b0, d0)) => {
@@ -169,6 +166,10 @@ fn run_search(
       }
       continue
     }
+    if st.steps >= opts.max_steps {
+      st.truncated = true
+      return
+    }
     st.steps += 1
     let (g0, gd) = goals[gi]
     gi += 1
@@ -207,7 +208,7 @@ fn run_search(
             continue
           }
           (";", 2) => {
-            choices.push(Goal(args[1], rest.to_owned(), binds))
+            choices.push(Goal(args[1], rest.to_owned(), binds, gd))
             goals = [(args[0], gd), ..rest]
             gi = 0
             continue
@@ -433,8 +434,12 @@ fn run_search(
               found.val = true
               false
             }
+            let truncated_before = st.truncated
             run_search(prog, [(args[0], gd)], binds, limit, opts, st, naf_emit)
-            if found.val {
+            // An incomplete negation (the sub-search hit a bound without a
+            // proof) is not a proof of absence: fail rather than succeed.
+            let incomplete = !found.val && st.truncated && !truncated_before
+            if found.val || incomplete {
               backtrack()
               if done {
                 return

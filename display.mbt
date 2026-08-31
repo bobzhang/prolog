@@ -228,19 +228,22 @@ fn base_name(name : String) -> String {
   if n == 0 {
     return name
   }
+  // Internal (interpreter-created) variables carry a leading `~`; strip it
+  // so answers render cleanly.
+  let start = if name[0] == '~' { 1 } else { 0 }
   let mut j = n - 1
-  while j >= 0 {
+  while j >= start {
     let c = name[j]
     if c < '0' || c > '9' {
       break
     }
     j -= 1
   }
-  if j == 0 && name[0] == '_' {
+  if j == start && name[start] == '_' {
     "_"
-  } else if j >= 0 && j < n - 1 && name[j] == '_' {
-    name[:j].to_owned()
+  } else if j >= start && j < n - 1 && name[j] == '_' {
+    name[start:j].to_owned()
   } else {
-    name
+    name[start:].to_owned()
   }
 }

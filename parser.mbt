@@ -645,6 +645,11 @@ fn parse_goal(text : String) -> (Term, Array[String]) raise PrologError {
         "expected '.' after query (line \{p.cur_line()})",
       )
   }
+  if !(p.peek() is Eof) {
+    raise PrologError::Parse(
+      "unexpected trailing input after query (line \{p.cur_line()})",
+    )
+  }
   (goal, goal.free_vars())
 }
 

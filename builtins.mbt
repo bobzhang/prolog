@@ -233,7 +233,7 @@ fn proper_list(binds : Bindings, t : Term) -> Array[Term]? {
 fn fresh_list(st : SearchState, k : Int) -> Term {
   let elems : Array[Term] = []
   for _i in (0).until(k) {
-    elems.push(Var("_g\{st.next_var}"))
+    elems.push(Var("~_g\{st.next_var}"))
     st.next_var += 1
   }
   list(elems)
@@ -272,24 +272,30 @@ fn append_solutions(
     Some(elems_a) =>
       match proper_list(binds, c) {
         Some(elems_c) => {
-          // A and C proper: check the prefix and bind B to the suffix.
+          // A and C proper: unify A's elements with C's prefix (threading
+          // bindings), then bind B to the suffix.
           if elems_a.length() > elems_c.length() {
             return []
           }
-          let mut ok = true
-          for i in (0).until(elems_a.length()) {
-            if !(elems_a[i] == elems_c[i]) {
-              ok = false
-              break
+          fn unify_prefix(i : Int, b : Bindings) -> Bindings? {
+            if i >= elems_a.length() {
+              Some(b)
+            } else {
+              match unify(b, elems_a[i], elems_c[i]) {
+                None => None
+                Some(b2) => unify_prefix(i + 1, b2)
+              }
             }
           }
-          if !ok {
-            return []
-          }
-          let suffix = list(elems_c[elems_a.length():])
-          match unify(binds, b, suffix) {
+          match unify_prefix(0, binds) {
             None => []
-            Some(b2) => [b2]
+            Some(b1) => {
+              let suffix = list(elems_c[elems_a.length():])
+              match unify(b1, b, suffix) {
+                None => []
+                Some(b2) => [b2]
+              }
+            }
           }
         }
         None =>

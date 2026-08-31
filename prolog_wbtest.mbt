@@ -62,3 +62,10 @@ test "base names strip renaming suffixes" {
   assert_eq(base_name("X_"), "X_")
   assert_eq(base_name("_g0"), "_g0")
 }
+
+///|
+test "base names strip the internal prefix" {
+  assert_eq(base_name("~X_7"), "X")
+  assert_eq(base_name("~_g0"), "_g0")
+  assert_eq(base_name("~_1_2"), "_1")
+}

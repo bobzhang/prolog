@@ -65,6 +65,39 @@ fn parse_error(text : String) -> String raise TestFailure {
 }
 
 ///|
+fn term_parse_error(text : String) -> String raise TestFailure {
+  let r = @prolog.Term::parse(text) catch {
+    @prolog.PrologError::Parse(m) => return m
+    other => raise TestFailure::Msg(other.message())
+  }
+  ignore(r)
+  raise TestFailure::Msg("expected a parse error for: \{text}")
+}
+
+///|
+fn options_error(
+  opts : @prolog.Options,
+  goal : String,
+) -> String raise TestFailure {
+  let r = @prolog.Program::parse("").query_with(goal, opts) catch {
+    @prolog.PrologError::Eval(m) => return m
+    other => raise TestFailure::Msg(other.message())
+  }
+  ignore(r)
+  raise TestFailure::Msg("expected an evaluation error for: \{goal}")
+}
+
+///|
+fn query_parse_error(query : String) -> String raise TestFailure {
+  let r = @prolog.Program::parse("").query(query) catch {
+    @prolog.PrologError::Parse(m) => return m
+    other => raise TestFailure::Msg(other.message())
+  }
+  ignore(r)
+  raise TestFailure::Msg("expected a parse error for: \{query}")
+}
+
+///|
 fn family() -> String {
   let s =
     #|parent(john, mary).
@@ -489,4 +522,93 @@ test "programs ignore directives and comments" {
     #|   comment */
     #|likes(sam, apple).
   assert_eq(sols(p, "likes(sam, apple)"), ["true"])
+}
+
+///|
+test "interpreter variables are hygienic" {
+  // Clause renaming cannot collide with a query variable.
+  assert_eq(sols("p(Y) :- Y = a.", "p(Z), Y_0 = b"), ["Z = a, Y_0 = b"])
+  // Builtin-generated names cannot collide with a query variable.
+  assert_eq(sols("", "length(L, 1), _g0 = a"), ["L = [_g0], _g0 = a"])
+  // Renamed anonymous variables cannot collide with user variables.
+  assert_eq(sols("p(Y) :- Y = f(_).", "p(X), _1_2 = z"), ["X = f(_1), _1_2 = z"])
+}
+
+///|
+test "append unifies elements" {
+  assert_eq(sols("", "append([X], [b], [a, b])"), ["X = a"])
+  assert_eq(sols("", "append([X], Y, [a, b])"), ["X = a, Y = [b]"])
+  assert_eq(sols("", "append([a], [X], [a, b])"), ["X = b"])
+  assert_eq(sols("", "append([X], [b], [c, b])"), ["X = c"])
+  assert_eq(sols("", "append([a], [b], [c, b])"), [])
+}
+
+///|
+test "queries and terms require complete consumption" {
+  assert_true(query_parse_error("X = 1. X = 2").contains("trailing"))
+  assert_true(term_parse_error("a. b").contains("trailing"))
+  assert_eq(@prolog.Term::parse("a.").to_string(), "a")
+  assert_eq(@prolog.Term::parse("a").to_string(), "a")
+}
+
+///|
+test "disjunction preserves goal depth" {
+  let p = "p :- (q; r). r."
+  let opts1 = @prolog.Options::make(1, false, 1_000_000, 10)
+  let r1 = result_with(p, "p", opts1)
+  assert_eq(r1.solutions.length(), 0)
+  assert_true(r1.truncated)
+  let opts2 = @prolog.Options::make(2, false, 1_000_000, 10)
+  assert_eq(result_with(p, "p", opts2).answer_lines(), ["true"])
+}
+
+///|
+test "negation is sound under bounds" {
+  let p = "loop :- loop."
+  let r = result_with(
+    p,
+    "\\+ loop",
+    @prolog.Options::make(8, false, 100_000, 10),
+  )
+  assert_eq(r.solutions.length(), 0)
+  assert_true(r.truncated)
+  assert_eq(sols("", "\\+ member(3, [1, 2])"), ["true"])
+  assert_eq(sols("", "\\+ member(1, [1, 2])"), [])
+}
+
+///|
+test "limit boundaries are exact" {
+  // A single builtin goal fits in a one-step budget.
+  let r1 = result_with("", "true", @prolog.Options::make(32, false, 1, 10))
+  assert_eq(r1.answer_lines(), ["true"])
+  assert_false(r1.truncated)
+  // A conjunction needs more than one step.
+  let r2 = result_with(
+    "",
+    "X = 1, Y = 2",
+    @prolog.Options::make(32, false, 1, 10),
+  )
+  assert_eq(r2.solutions.length(), 0)
+  assert_true(r2.truncated)
+  // Depth 0 allows builtins but rejects every clause.
+  let r3 = result_with(
+    "",
+    "X = 1",
+    @prolog.Options::make(0, false, 100_000, 10),
+  )
+  assert_eq(r3.answer_lines(), ["X = 1"])
+  assert_false(r3.truncated)
+  let r4 = result_with(
+    "p(a).",
+    "p(X)",
+    @prolog.Options::make(0, false, 100_000, 10),
+  )
+  assert_eq(r4.solutions.length(), 0)
+  assert_true(r4.truncated)
+}
+
+///|
+test "negative options are rejected" {
+  let msg = options_error(@prolog.Options::make(-1, false, 1_000, 10), "true")
+  assert_true(msg.contains("non-negative"))
 }

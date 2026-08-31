@@ -1,0 +1,92 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "bobzhang/prolog"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn atom(String) -> Term
+
+pub fn compound(String, Array[Term]) -> Term
+
+pub fn cons(Term, Term) -> Term
+
+pub fn empty_list() -> Term
+
+pub fn float(Double) -> Term
+
+pub fn int(Int) -> Term
+
+pub fn list(ArrayView[Term]) -> Term
+
+pub fn str(String) -> Term
+
+pub fn variable(String) -> Term
+
+// Errors
+pub suberror PrologError {
+  Parse(String)
+  Eval(String)
+} derive(@debug.Debug)
+pub fn PrologError::message(Self) -> String
+
+// Types and methods
+pub struct Bindings {
+  buckets : Array[Array[(String, Term)]]
+}
+pub fn Bindings::apply(Self, Term) -> Term
+pub fn Bindings::apply_deep(Self, Term) -> Term
+pub fn Bindings::empty() -> Self
+pub fn Bindings::get(Self, String) -> Term?
+pub fn Bindings::names(Self) -> Array[String]
+
+pub struct Clause {
+  head : Term
+  body : Term
+}
+
+type Num derive(Eq, @debug.Debug)
+
+pub struct Options {
+  max_depth : Int
+  ilds : Bool
+  max_steps : Int
+  max_solutions : Int
+}
+pub fn Options::make(Int, Bool, Int, Int) -> Self
+pub fn Options::new() -> Self
+
+pub struct Program {
+  clauses : Map[String, Array[Clause]]
+}
+pub fn Program::parse(String) -> Self raise PrologError
+pub fn Program::query(Self, String) -> QueryResult raise PrologError
+pub fn Program::query_with(Self, String, Options) -> QueryResult raise PrologError
+
+pub struct QueryResult {
+  solutions : Array[Bindings]
+  vars : Array[String]
+  output : String
+  truncated : Bool
+}
+pub fn QueryResult::answer_lines(Self) -> Array[String]
+
+pub enum Term {
+  Var(String)
+  Atom(String)
+  Int(Int)
+  Float(Double)
+  Str(String)
+  Compound(String, Array[Term])
+} derive(Eq, @debug.Debug)
+pub fn Term::free_vars(Self) -> Array[String]
+pub fn Term::is_list(Self) -> Bool
+pub fn Term::parse(String) -> Self raise PrologError
+pub fn Term::to_string(Self) -> String
+
+type TokKind derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

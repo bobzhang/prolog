@@ -88,3 +88,25 @@ N = 0
 N = 1
 N = 2
 ```
+
+Repeated `--query` options run in order:
+
+```mooncram
+$ prolog.exe --query "X = 1" --query "X = 2"
+X = 1
+X = 2
+```
+
+Evaluation errors are reported on stderr and fail with a nonzero exit code:
+
+```mooncram
+$ prolog.exe --query "X is 1/0"
+[1]
+```
+
+Invalid numeric flags fail with a usage error:
+
+```mooncram
+$ prolog.exe --depth=-1 --query "true"
+[2]
+```

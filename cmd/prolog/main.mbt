@@ -88,13 +88,25 @@ async fn run() -> Int raise CliError {
   let program = @lib.Program::parse(text) catch {
     e => raise CliError::Msg(e.message())
   }
-  match matches.values.get("query") {
-    Some([q, ..]) => {
-      run_query(program, opts, q)
-      0
+  let queries = match matches.values.get("query") {
+    Some(qs) => qs
+    _ => []
+  }
+  if queries.is_empty() {
+    repl(program, opts)
+    0
+  } else {
+    // Run every supplied query in order; a failing query is reported but
+    // does not stop the remaining ones from running.
+    let mut failed = false
+    for q in queries {
+      if run_query(program, opts, q) != 0 {
+        failed = true
+      }
     }
-    _ => {
-      repl(program, opts)
+    if failed {
+      1
+    } else {
       0
     }
   }
@@ -111,6 +123,9 @@ fn opts_from_matches(
         let x : Int = @string.from_str(v) catch {
           _ => raise CliError::Msg("invalid integer for --\{name}: \{v}")
         }
+        if x < 0 {
+          raise CliError::Msg("--\{name} must be non-negative")
+        }
         x
       }
       _ => default
@@ -125,34 +140,63 @@ fn opts_from_matches(
 }
 
 ///|
-/// Run one query and print its output and answers.
+/// Write to stdout, reporting I/O failure instead of raising.
+async fn stdout_write(text : String) -> Bool noraise {
+  @stdio.stdout.write(text) catch {
+    _ => return false
+  }
+  true
+}
+
+///|
+/// Write to stderr, reporting I/O failure instead of raising.
+async fn stderr_write(text : String) -> Bool noraise {
+  @stdio.stderr.write(text) catch {
+    _ => return false
+  }
+  true
+}
+
+///|
+/// Run one query and print its output and answers. Returns 0 on success and
+/// 1 on parse/evaluation/I/O failure.
 async fn run_query(
   program : @lib.Program,
   opts : @lib.Options,
   text : String,
-) -> Unit noraise {
+) -> Int noraise {
   let result = program.query_with(text, opts) catch {
     e => {
-      ignore(@stdio.stderr.write("error: \{e.message()}\n") catch { _ => () })
-      return
+      ignore(stderr_write("error: \{e.message()}\n"))
+      return 1
     }
   }
+  let mut ok = true
   if result.output != "" {
-    ignore(@stdio.stdout.write(result.output) catch { _ => () })
+    if !stdout_write(result.output) {
+      ok = false
+    }
   }
   if result.solutions.is_empty() {
-    ignore(@stdio.stdout.write("false.\n") catch { _ => () })
+    if !stdout_write("false.\n") {
+      ok = false
+    }
   } else {
     for line in result.answer_lines() {
-      ignore(@stdio.stdout.write("\{line}\n") catch { _ => () })
+      if !stdout_write("\{line}\n") {
+        ok = false
+      }
     }
   }
   if result.truncated {
-    ignore(
-      @stdio.stderr.write("% note: search truncated by limits\n") catch {
-        _ => ()
-      },
-    )
+    if !stderr_write("% note: search truncated by limits\n") {
+      ok = false
+    }
+  }
+  if ok {
+    0
+  } else {
+    1
   }
 }
 
@@ -166,7 +210,7 @@ async fn repl(program : @lib.Program, opts : @lib.Options) -> Unit noraise {
     match line {
       None => {
         if !buffer.is_empty() {
-          run_query(program, opts, buffer.join(""))
+          ignore(run_query(program, opts, buffer.join("")))
         }
         break
       }
@@ -180,7 +224,7 @@ async fn repl(program : @lib.Program, opts : @lib.Options) -> Unit noraise {
         }
         buffer.push(l)
         if trimmed.has_suffix(".") {
-          run_query(program, opts, buffer.join(""))
+          ignore(run_query(program, opts, buffer.join("")))
           buffer = []
         }
       }

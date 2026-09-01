@@ -1,31 +1,35 @@
 # Prolog Interpreter Improvement TODOs
 
-Audit date: 2026-08-31
+Initial audit: 2026-08-31
+Last re-evaluated: 2026-09-01
 
 ## Quality assessment
 
-This is a promising alpha-quality interpreter with a compact, understandable
+This is now a stronger alpha-quality interpreter with a compact, understandable
 architecture. Its strongest parts are the explicit-stack resolution engine,
 occurs-checking unification, predicate indexing, readable implementation, useful
-README examples, and substantial tests. It is a good educational interpreter and
-a solid base for further work.
+README examples, and substantial tests. Variable hygiene, relational `append/3`,
+strict input consumption, disjunction depth, unsupported directives, target
+declarations, and CLI failure behavior have all improved since the initial audit.
 
-It is not yet a dependable or Prolog-compatible production interpreter. Several
-confirmed defects affect variable isolation, relational built-ins, depth bounds,
-query parsing, and incomplete negation. The API also reports all resource limits
-through one Boolean, and the CLI hides some failures behind exit status 0.
+It is not yet a broadly Prolog-compatible production interpreter. All six
+original P0 blockers are now closed, including the two re-opened edge cases
+(sticky negation truncation and `max_solutions = 0`). The API still collapses
+every resource-limit cause into one Boolean, several relations only implement
+selected modes, and the supported language remains intentionally small.
 
 Current baseline:
 
-- `moon fmt --check`, `moon check`, `moon test`, CLI cram tests, and the native
-  build pass.
-- 40 unit/doc/white-box tests and 13 CLI transcript tests pass.
-- Coverage is 1074/1367 executable lines (78.6%), or 1074/1279 (84.0%) when the
-  separately tested CLI is excluded.
-- `moon check --target all` fails because `cmd/prolog` uses APIs unavailable on
-  the JS and wasm-gc targets but does not declare its supported targets.
-- The current compiler reports seven `implicit_impl_as_method` deprecation
-  warnings.
+- `moon fmt --check`, `moon check --target all`, `moon test`, and CLI cram tests
+  pass for the declared target matrix.
+- 51 unit/doc/white-box tests and 16 CLI transcript tests pass.
+- Library-package coverage is 1087/1286 executable lines (84.5%). CLI transcript
+  coverage is tracked separately by cram tests.
+- Checklist progress is 9/30 fully complete: all six P0 blockers plus target
+  declarations, directive rejection, and CLI failure behavior.
+- Rough completeness estimate: about 80% of the README-promised subset, 60-65%
+  of a dependable small pure-Prolog core, and 25-30% of the surface normally
+  expected from a conventional Prolog implementation.
 
 Suggested release gate: complete P0 before treating results as semantically
 reliable, and complete P1 before describing the project as beta quality.
@@ -34,54 +38,43 @@ reliable, and complete P1 before describing the project as beta quality.
 
 - [x] Make all interpreter-created variables hygienically fresh.
 
-  Clause variables are renamed by appending a numeric suffix, and list built-ins
-  generate visible names such as `_g0`. Both can collide with legal variables in
-  the query. Confirmed examples:
+  Clause renaming and list built-ins now use parser-disjoint internal names.
+  Regressions cover the original collisions:
 
-  - `p(Y) :- Y = a.` with `p(Z), Y_0 = b` incorrectly fails.
-  - `length(L, 1), _g0 = a` incorrectly forces `L = [a]`.
-
-  Use an internal variable identity or a fresh-name allocator that is guaranteed
-  disjoint from every parsed and public-API-created variable. Add regressions for
-  query/clause, nested-clause, anonymous-variable, and built-in collisions.
+  - `p(Y) :- Y = a.` with `p(Z), Y_0 = b` now yields both bindings.
+  - `length(L, 1), _g0 = a` no longer aliases the generated list variable.
 
 - [x] Fix `append/3` so corresponding list elements are unified, not compared
   with structural equality.
 
-  `append([X], [b], [a, b])` currently fails instead of binding `X = a`.
-  Thread the resulting bindings through every prefix element and then through
-  the suffix. Cover variables on both sides, repeated variables, open lists, and
-  failures caused by inconsistent bindings.
+  Prefix unification now threads bindings element by element and then through the
+  suffix. `append([X], [b], [a, b])` correctly binds `X = a`, with regressions
+  for variables on both sides and inconsistent prefixes.
 
 - [x] Require complete consumption of queries and standalone terms.
 
-  After an optional terminating dot, only EOF should be accepted. The query
-  `X = 1. X = 2` currently runs as `X = 1` and silently ignores the rest. Test
-  trailing terms, operators, dots, comments, and whitespace through both
-  `Program::query` and `Term::parse`.
+  Queries and standalone terms now require EOF after an optional terminating
+  dot. Inputs such as `X = 1. X = 2` and `a. b` produce parse errors instead of
+  silently ignoring the suffix.
 
 - [x] Preserve goal depth when backtracking into a disjunction.
 
-  `Choice::Goal` restores its alternative at depth 0. As a result, with DFS depth
-  1, `p :- (q; r). r.` incorrectly succeeds. Store and restore the original goal
-  depth, then add nested disjunction/conjunction/call tests at exact depth
-  boundaries.
+  `Choice::Goal` now stores and restores the original dispatch depth. With DFS
+  depth 1, `p :- (q; r). r.` correctly reports no solution and truncation; depth
+  2 succeeds.
 
-- [x] Make bounded negation sound.
+- [x] Finish bounded negation soundness across prior truncation.
 
-  A negated sub-search that reaches a depth or step bound is currently treated as
-  ordinary failure, so `\+ loop` can return `true` while also setting
-  `truncated`. Represent the outcome as success, failure, or incomplete; never
-  present an incomplete negation as definitive success. Document whether the
-  public API returns an explicit unknown result or raises a resource-limit error.
+  A truncation epoch counter now makes each negation sub-search's truncation
+  local, so a bound hit by an earlier branch no longer masks it. With DFS depth 1
+  and `deep :- deep. loop :- loop.`, the query `deep; \+ loop` fails instead of
+  emitting `true`; isolated and previously-truncated regressions both pass.
 
-- [x] Correct limit accounting and validate every `Options` value.
+- [x] Finish limit boundary semantics and validation.
 
-  With `max_steps = 1`, the query `true` is processed but is never emitted because
-  the budget check runs before solution detection. A depth of 0 also returns
-  `false` without reporting truncation, and non-positive solution limits have
-  surprising behavior. Define boundary semantics, reject invalid options, and
-  add exact 0/1/limit-1/limit/limit+1 tests for depth, steps, and solutions.
+  Step accounting, depth-0 reporting, negative-option validation, and the
+  `max_solutions = 0` boundary are fixed: zero now emits no answers, and reaching
+  the solution cap only marks truncation when a further candidate exists.
 
 ## P1 - Semantic clarity and robustness
 
@@ -132,25 +125,24 @@ reliable, and complete P1 before describing the project as beta quality.
 
 - [ ] Improve parser correctness and diagnostics.
 
-  Store both line and column on tokens so the public error contract is true.
-  Add tests for escaped quotes, malformed escapes, comments, Unicode input,
-  exponent notation, deeply nested terms, and printer/parser round trips.
-  Replace recursive list construction, list checks, and other easily exhausted
-  paths where practical.
+  Tokens now store line and column, diagnostics report both, and basic error
+  locations have regression coverage. Finish tests for escaped quotes, malformed
+  escapes, comments, Unicode input, exponent notation, deeply nested terms, and
+  printer/parser round trips. Replace recursive list construction, list checks,
+  and other easily exhausted paths where practical.
 
-- [ ] Reject unsupported directives instead of silently ignoring them.
+- [x] Reject unsupported directives instead of silently ignoring them.
 
-  An `op/3` directive is accepted and discarded, even though its operator is not
-  available to following clauses. Until directives are implemented, return a
-  clear unsupported-feature error. Later, add an operator environment and apply
-  directives in source order.
+  Directives such as `op/3` now produce a clear unsupported-feature parse error
+  instead of being accepted and discarded. If directives are added later,
+  introduce an operator environment and apply them in source order.
 
-- [ ] Fix CLI error and repetition behavior.
+- [x] Fix CLI error and repetition behavior.
 
-  The help says `--query` is repeatable, but only the first query is run.
-  Evaluation errors such as division by zero print a message and still exit 0.
-  Run all supplied queries in order, return nonzero on parse/evaluation/I/O
-  failure, validate numeric flags, and test stdout, stderr, and exit codes.
+  All repeatable `--query` values now run in order. Parse, evaluation, and I/O
+  failures produce a nonzero status, output-write failures are propagated, and
+  negative numeric flags are rejected. Cram tests cover repeated queries,
+  evaluation failure status, and invalid numeric flags.
 
 - [ ] Make REPL statement collection syntax-aware.
 
@@ -158,11 +150,10 @@ reliable, and complete P1 before describing the project as beta quality.
   Track brackets, parentheses, quoted strings, escapes, and comments, and provide
   useful EOF diagnostics for incomplete input. Add interactive transcript tests.
 
-- [ ] Declare and continuously test the supported target matrix.
+- [x] Declare and continuously test the supported target matrix.
 
-  Mark `cmd/prolog` as native+wasm (unless JS/wasm-gc support is implemented),
-  make `moon check --target all` pass for the declared matrix, and exercise both
-  wasm and native in CI.
+  `cmd/prolog` is declared for native and wasm. CI checks all declared targets,
+  runs wasm unit tests, and builds both native and wasm CLI targets.
 
 - [ ] Eliminate compiler warnings and enforce interface review.
 
@@ -187,12 +178,12 @@ reliable, and complete P1 before describing the project as beta quality.
 
 - [ ] Expand regression, property, and conformance tests.
 
-  Add every P0 reproducer first. Then test parser/printer round trips over
-  generated terms, unification symmetry/idempotence/occurs-check properties,
-  cut barriers, meta-calls, nested disjunction depth, search ordering, and every
-  error branch. Maintain a documented compatibility suite for the chosen Prolog
-  dialect. Raise library coverage beyond 90% based on meaningful assertions, not
-  line-only tests.
+  Test parser/printer
+  round trips over generated terms, unification symmetry/idempotence/occurs-check
+  properties, cut barriers, meta-calls, nested disjunction depth, search ordering,
+  and every error branch. Maintain a documented compatibility suite for the
+  chosen Prolog dialect. Raise library coverage beyond 90% based on meaningful
+  assertions, not line-only tests.
 
 - [ ] Add parser and evaluator fuzzing with resource caps.
 
@@ -239,11 +230,10 @@ reliable, and complete P1 before describing the project as beta quality.
 
 ## Recommended implementation order
 
-1. Add regression tests for all P0 examples and fix variable hygiene,
-   `append/3`, complete parsing, and disjunction depth.
-2. Introduce structured completion/error outcomes; fix limit accounting and
-   bounded negation on top of them.
-3. Convert built-in answer generation to lazy choice points and finish the CLI
-   contract.
+1. Close the two remaining P0 edges: local completion state for nested negation
+   and defined zero-solution-limit behavior, with regressions.
+2. Replace the truncation Boolean with structured completion/error outcomes.
+3. Convert built-in answer generation to lazy choice points and make partial
+   relation modes explicit.
 4. Lock down the dialect with conformance/property tests and target-matrix CI.
 5. Profile and improve internals, then consider P3 language features.

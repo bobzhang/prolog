@@ -196,6 +196,16 @@ test "parse errors carry messages" {
 }
 
 ///|
+test "parse errors carry line and column" {
+  let m1 = parse_error("q(.")
+  assert_true(m1.contains("line"))
+  assert_true(m1.contains("column"))
+  let m2 = parse_error("\"abc")
+  assert_true(m2.contains("line"))
+  assert_true(m2.contains("column"))
+}
+
+///|
 test "unification basics" {
   assert_eq(sols("", "X = 1"), ["X = 1"])
   assert_eq(sols("", "X = apple"), ["X = apple"])
@@ -579,6 +589,20 @@ test "negation is sound under bounds" {
 }
 
 ///|
+test "negation after a truncated branch is not a false success" {
+  // `deep` truncates before `\+ loop` runs; the stale truncation flag must
+  // not make the incomplete `\+ loop` look like ordinary failure.
+  let p = "deep :- deep. loop :- loop."
+  let r = result_with(
+    p,
+    "deep; \\+ loop",
+    @prolog.Options::make(1, false, 1_000_000, 10),
+  )
+  assert_eq(r.solutions.length(), 0)
+  assert_true(r.truncated)
+}
+
+///|
 test "limit boundaries are exact" {
   // A single builtin goal fits in a one-step budget.
   let r1 = result_with("", "true", @prolog.Options::make(32, false, 1, 10))
@@ -613,4 +637,14 @@ test "limit boundaries are exact" {
 test "negative options are rejected" {
   let msg = options_error(@prolog.Options::make(-1, false, 1_000, 10), "true")
   assert_true(msg.contains("non-negative"))
+}
+
+///|
+test "max_solutions = 0 emits no answers" {
+  let r = result_with(
+    "",
+    "X = 1",
+    @prolog.Options::make(32, false, 1_000_000, 0),
+  )
+  assert_eq(r.solutions.length(), 0)
 }

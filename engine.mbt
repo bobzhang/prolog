@@ -13,6 +13,9 @@ priv struct SearchState {
   /// The search was cut off by the depth limit (as opposed to the step or
   /// solution budgets), so a deeper round may find more.
   mut truncated_by_depth : Bool
+  /// Monotonic counter bumped each time a bound cuts the search short; lets
+  /// nested searches (negation-as-failure) detect their own truncation.
+  mut truncation_epoch : Int
 }
 
 ///|
@@ -211,13 +214,15 @@ pub fn Program::query_with(
     out: [],
     truncated: false,
     truncated_by_depth: false,
+    truncation_epoch: 0,
   }
   let emit = (b : Bindings) => {
-    st.solutions.push(b)
     if st.solutions.length() >= opts.max_solutions {
       st.truncated = true
+      st.truncation_epoch += 1
       return false
     }
+    st.solutions.push(b)
     true
   }
   let mut best : (Array[Bindings], Array[String])? = None

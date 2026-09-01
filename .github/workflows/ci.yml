@@ -25,11 +25,20 @@ jobs:
       - name: Check
         run: moon check
 
+      - name: Check all targets
+        run: moon check --target all
+
       - name: Unit and integration tests
         run: moon test
+
+      - name: Unit tests (wasm)
+        run: moon test --target wasm
 
       - name: CLI transcript tests
         run: moon cram test tests/cram
 
       - name: Build native CLI
         run: moon build --target native
+
+      - name: Build wasm CLI
+        run: moon build --target wasm cmd/prolog

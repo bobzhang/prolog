@@ -22,6 +22,7 @@ enum TokKind {
 priv struct Tok {
   kind : TokKind
   line : Int
+  col : Int
 }
 
 ///|
@@ -94,66 +95,69 @@ fn lex(src : StringView) -> Array[Tok] raise PrologError {
         i += 1
       }
       if !closed {
-        raise PrologError::Parse("unterminated block comment (line \{line})")
+        raise PrologError::Parse(
+          "unterminated block comment (line \{line}, column \{col})",
+        )
       }
       continue
     }
     if c == ';' {
-      toks.push({ kind: Op(";"), line, })
+      toks.push({ kind: Op(";"), line, col, })
       i += 1
+      col += 1
       continue
     }
     if c == '(' {
-      toks.push({ kind: LParen, line, })
+      toks.push({ kind: LParen, line, col, })
       i += 1
       col += 1
       continue
     }
     if c == ')' {
-      toks.push({ kind: RParen, line, })
+      toks.push({ kind: RParen, line, col, })
       i += 1
       col += 1
       continue
     }
     if c == '[' {
-      toks.push({ kind: LBracket, line, })
+      toks.push({ kind: LBracket, line, col, })
       i += 1
       col += 1
       continue
     }
     if c == ']' {
-      toks.push({ kind: RBracket, line, })
+      toks.push({ kind: RBracket, line, col, })
       i += 1
       col += 1
       continue
     }
     if c == ',' {
-      toks.push({ kind: Comma, line, })
+      toks.push({ kind: Comma, line, col, })
       i += 1
       col += 1
       continue
     }
     if c == '|' {
-      toks.push({ kind: Pipe, line, })
+      toks.push({ kind: Pipe, line, col, })
       i += 1
       col += 1
       continue
     }
     if c == '!' {
-      toks.push({ kind: Cut, line, })
+      toks.push({ kind: Cut, line, col, })
       i += 1
       col += 1
       continue
     }
     if c == '.' {
-      toks.push({ kind: Dot, line, })
+      toks.push({ kind: Dot, line, col, })
       i += 1
       col += 1
       continue
     }
     if c == '\'' || c == '"' {
       let (s, ni, nl, nc) = lex_quoted(src, i, line, col, c)
-      toks.push({ kind: if c == '"' { Str(s) } else { Atom(s) }, line, })
+      toks.push({ kind: if c == '"' { Str(s) } else { Atom(s) }, line, col, })
       i = ni
       line = nl
       col = nc
@@ -176,7 +180,7 @@ fn lex(src : StringView) -> Array[Tok] raise PrologError {
               "invalid float literal '\{text}' (line \{line}, column \{col})",
             )
         }
-        toks.push({ kind: NumFloat(f), line, })
+        toks.push({ kind: NumFloat(f), line, col, })
         let len = j - i
         i = j
         col += len
@@ -189,7 +193,7 @@ fn lex(src : StringView) -> Array[Tok] raise PrologError {
             "invalid integer literal (line \{line}, column \{col})",
           )
       }
-      toks.push({ kind: NumInt(v), line, })
+      toks.push({ kind: NumInt(v), line, col, })
       let len = j - i
       i = j
       col += len
@@ -200,7 +204,7 @@ fn lex(src : StringView) -> Array[Tok] raise PrologError {
       while j < n && is_word_char(src[j]) {
         j += 1
       }
-      toks.push({ kind: Atom(src[i:j].to_owned()), line, })
+      toks.push({ kind: Atom(src[i:j].to_owned()), line, col, })
       let len = j - i
       i = j
       col += len
@@ -211,14 +215,14 @@ fn lex(src : StringView) -> Array[Tok] raise PrologError {
       while j < n && is_word_char(src[j]) {
         j += 1
       }
-      toks.push({ kind: Var(src[i:j].to_owned()), line, })
+      toks.push({ kind: Var(src[i:j].to_owned()), line, col, })
       let len = j - i
       i = j
       col += len
       continue
     }
     if c == ':' && i + 1 < n && src[i + 1] == '-' {
-      toks.push({ kind: Op(":-"), line, })
+      toks.push({ kind: Op(":-"), line, col, })
       i += 2
       col += 2
       continue
@@ -236,20 +240,20 @@ fn lex(src : StringView) -> Array[Tok] raise PrologError {
         "="
       }
       let len = op.length()
-      toks.push({ kind: Op(op), line, })
+      toks.push({ kind: Op(op), line, col, })
       i += len
       col += len
       continue
     }
     if c == '<' {
-      toks.push({ kind: Op("<"), line, })
+      toks.push({ kind: Op("<"), line, col, })
       i += 1
       col += 1
       continue
     }
     if c == '>' {
       let len = if i + 1 < n && src[i + 1] == '=' { 2 } else { 1 }
-      toks.push({ kind: Op(if len == 2 { ">=" } else { ">" }), line, })
+      toks.push({ kind: Op(if len == 2 { ">=" } else { ">" }), line, col, })
       i += len
       col += len
       continue
@@ -267,7 +271,7 @@ fn lex(src : StringView) -> Array[Tok] raise PrologError {
         )
       }
       let len = op.length()
-      toks.push({ kind: Op(op), line, })
+      toks.push({ kind: Op(op), line, col, })
       i += len
       col += len
       continue
@@ -276,6 +280,7 @@ fn lex(src : StringView) -> Array[Tok] raise PrologError {
       toks.push({
         kind: Op(if c == '+' { "+" } else if c == '-' { "-" } else { "*" }),
         line,
+        col,
       })
       i += 1
       col += 1
@@ -283,7 +288,7 @@ fn lex(src : StringView) -> Array[Tok] raise PrologError {
     }
     if c == '/' {
       let len = if i + 1 < n && src[i + 1] == '/' { 2 } else { 1 }
-      toks.push({ kind: Op(if len == 2 { "//" } else { "/" }), line, })
+      toks.push({ kind: Op(if len == 2 { "//" } else { "/" }), line, col, })
       i += len
       col += len
       continue
@@ -292,7 +297,7 @@ fn lex(src : StringView) -> Array[Tok] raise PrologError {
       "unexpected character (line \{line}, column \{col})",
     )
   }
-  toks.push({ kind: Eof, line, })
+  toks.push({ kind: Eof, line, col, })
   toks
 }
 
@@ -341,7 +346,7 @@ fn lex_quoted(
     }
     j += 1
   }
-  raise PrologError::Parse("unterminated quoted token (line \{line})")
+  raise PrologError::Parse("unterminated quoted token (line \{l}, column \{c})")
 }
 
 ///|
@@ -367,6 +372,11 @@ fn Parser::next(self : Parser) -> TokKind {
 ///|
 fn Parser::cur_line(self : Parser) -> Int {
   self.toks[self.pos - 1].line
+}
+
+///|
+fn Parser::cur_col(self : Parser) -> Int {
+  self.toks[self.pos - 1].col
 }
 
 ///|
@@ -439,7 +449,7 @@ fn Parser::parse_term(self : Parser, min_tight : Int) -> Term raise PrologError 
         left = Compound(op, [left, rhs])
         if is_non_assoc(op) && is_non_assoc(self.peek_op()) {
           raise PrologError::Parse(
-            "operator '\{op}' is not associative (line \{self.cur_line()})",
+            "operator '\{op}' is not associative (line \{self.cur_line()}, column \{self.cur_col()})",
           )
         }
       }
@@ -462,7 +472,7 @@ fn Parser::parse_args(self : Parser) -> Array[Term] raise PrologError {
       RParen => break
       _ =>
         raise PrologError::Parse(
-          "expected ',' or ')' in arguments (line \{self.cur_line()})",
+          "expected ',' or ')' in arguments (line \{self.cur_line()}, column \{self.cur_col()})",
         )
     }
   }
@@ -493,7 +503,10 @@ fn Parser::parse_primary(self : Parser) -> Term raise PrologError {
       let t = self.parse_term(0)
       match self.next() {
         RParen => t
-        _ => raise PrologError::Parse("expected ')' (line \{self.cur_line()})")
+        _ =>
+          raise PrologError::Parse(
+            "expected ')' (line \{self.cur_line()}, column \{self.cur_col()})",
+          )
       }
     }
     LBracket => self.parse_list(500)
@@ -502,14 +515,17 @@ fn Parser::parse_primary(self : Parser) -> Term raise PrologError {
     Op("-") => Compound("-", [self.parse_term(1301)])
     Op(op) =>
       raise PrologError::Parse(
-        "unexpected operator '\{op}' (line \{self.cur_line()})",
+        "unexpected operator '\{op}' (line \{self.cur_line()}, column \{self.cur_col()})",
       )
     Cut => Atom("!")
     Eof =>
       raise PrologError::Parse(
-        "unexpected end of input (line \{self.cur_line()})",
+        "unexpected end of input (line \{self.cur_line()}, column \{self.cur_col()})",
       )
-    _ => raise PrologError::Parse("unexpected token (line \{self.cur_line()})")
+    _ =>
+      raise PrologError::Parse(
+        "unexpected token (line \{self.cur_line()}, column \{self.cur_col()})",
+      )
   }
 }
 
@@ -533,14 +549,14 @@ fn Parser::parse_list(self : Parser, min_tight : Int) -> Term raise PrologError 
             RBracket => Compound(".", [head, tail])
             _ =>
               raise PrologError::Parse(
-                "expected ']' after list tail (line \{self.cur_line()})",
+                "expected ']' after list tail (line \{self.cur_line()}, column \{self.cur_col()})",
               )
           }
         }
         RBracket => Compound(".", [head, Atom("[]")])
         _ =>
           raise PrologError::Parse(
-            "expected ',', '|' or ']' in list (line \{self.cur_line()})",
+            "expected ',', '|' or ']' in list (line \{self.cur_line()}, column \{self.cur_col()})",
           )
       }
     }
@@ -551,8 +567,14 @@ fn Parser::parse_list(self : Parser, min_tight : Int) -> Term raise PrologError 
 fn Parser::expect_dot(self : Parser) -> Unit raise PrologError {
   match self.next() {
     Dot => ()
-    Eof => raise PrologError::Parse("expected '.' before end of input")
-    _ => raise PrologError::Parse("expected '.' (line \{self.cur_line()})")
+    Eof =>
+      raise PrologError::Parse(
+        "expected '.' before end of input (line \{self.cur_line()}, column \{self.cur_col()})",
+      )
+    _ =>
+      raise PrologError::Parse(
+        "expected '.' (line \{self.cur_line()}, column \{self.cur_col()})",
+      )
   }
 }
 
@@ -570,7 +592,7 @@ fn Parser::parse_program(self : Parser) -> Program raise PrologError {
     match self.peek() {
       Op(":-") =>
         raise PrologError::Parse(
-          "unsupported directive (line \{self.toks[self.pos].line})",
+          "unsupported directive (line \{self.toks[self.pos].line}, column \{self.toks[self.pos].col})",
         )
       _ => ()
     }
@@ -583,14 +605,14 @@ fn Parser::parse_program(self : Parser) -> Program raise PrologError {
       Dot => Atom("true")
       _ =>
         raise PrologError::Parse(
-          "expected '.' or ':-' after clause head (line \{self.cur_line()})",
+          "expected '.' or ':-' after clause head (line \{self.cur_line()}, column \{self.cur_col()})",
         )
     }
     match head {
       Atom(_) | Compound(_, _) => ()
       _ =>
         raise PrologError::Parse(
-          "clause head must be callable (line \{self.cur_line()})",
+          "clause head must be callable (line \{self.cur_line()}, column \{self.cur_col()})",
         )
     }
     self.expect_dot()
@@ -639,12 +661,12 @@ fn parse_goal(text : String) -> (Term, Array[String]) raise PrologError {
     Eof => ()
     _ =>
       raise PrologError::Parse(
-        "expected '.' after query (line \{p.cur_line()})",
+        "expected '.' after query (line \{p.cur_line()}, column \{p.cur_col()})",
       )
   }
   if !(p.peek() is Eof) {
     raise PrologError::Parse(
-      "unexpected trailing input after query (line \{p.cur_line()})",
+      "unexpected trailing input after query (line \{p.cur_line()}, column \{p.cur_col()})",
     )
   }
   (goal, goal.free_vars())

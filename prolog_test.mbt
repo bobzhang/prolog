@@ -648,3 +648,56 @@ test "max_solutions = 0 emits no answers" {
   )
   assert_eq(r.solutions.length(), 0)
 }
+
+///|
+test "exponent notation parses and round-trips" {
+  assert_eq(@prolog.Term::parse("1e3").to_string(), "1000.0")
+  assert_eq(@prolog.Term::parse("1.5e3").to_string(), "1500.0")
+  assert_eq(@prolog.Term::parse("1e-3").to_string(), "0.001")
+  assert_eq(@prolog.Term::parse("2.5E2").to_string(), "250.0")
+  assert_eq(@prolog.Term::parse("1e-7").to_string(), "1e-7")
+  assert_eq(@prolog.Term::parse("1.23456789e+23").to_string(), "1.23456789e+23")
+}
+
+///|
+test "quoted tokens round-trip escapes and unicode" {
+  let cases = [
+    "'a\\'b'", "\"a\\\"b\"", "'a\\\\b'", "\"line\\nbreak\"", "'tab\\tstop'", "'café'",
+    "\"日本語\"", "'naïve'",
+  ]
+  for c in cases {
+    assert_eq(@prolog.Term::parse(c).to_string(), c)
+  }
+}
+
+///|
+test "malformed escapes are rejected" {
+  assert_true(parse_error("\"a\\qb\"").contains("invalid escape"))
+  assert_true(parse_error("'a\\qb'").contains("invalid escape"))
+}
+
+///|
+test "comments are ignored in programs" {
+  let p =
+    #|% line comment
+    #|likes(sam, apple). % trailing comment
+    #|/* block
+    #|   comment */
+    #|likes(mary, apple).
+  assert_eq(sols(p, "likes(X, apple)"), ["X = sam", "X = mary"])
+}
+
+///|
+test "deeply nested terms parse and display" {
+  let depth = 200
+  let sb = StringBuilder()
+  for _i in (0).until(depth) {
+    sb.write_string("f(")
+  }
+  sb.write_string("a")
+  for _i in (0).until(depth) {
+    sb.write_string(")")
+  }
+  let text = sb.to_string()
+  assert_eq(@prolog.Term::parse(text).to_string(), text)
+}

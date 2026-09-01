@@ -168,11 +168,29 @@ fn lex(src : StringView) -> Array[Tok] raise PrologError {
       while j < n && is_digit(src[j]) {
         j += 1
       }
+      let mut is_float = false
       if j < n && src[j] == '.' && j + 1 < n && is_digit(src[j + 1]) {
+        is_float = true
         j += 1
         while j < n && is_digit(src[j]) {
           j += 1
         }
+      }
+      // Exponent notation: `e`/`E`, an optional sign, and at least one digit.
+      if j < n && (src[j] == 'e' || src[j] == 'E') {
+        let mut k = j + 1
+        if k < n && (src[k] == '+' || src[k] == '-') {
+          k += 1
+        }
+        if k < n && is_digit(src[k]) {
+          is_float = true
+          j = k
+          while j < n && is_digit(src[j]) {
+            j += 1
+          }
+        }
+      }
+      if is_float {
         let text = src[i:j].to_owned()
         let f : Double = @string.from_str(text) catch {
           _ =>

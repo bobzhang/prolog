@@ -22,11 +22,12 @@ Current baseline:
 
 - `moon fmt --check`, `moon check --target all`, `moon test`, and CLI cram tests
   pass for the declared target matrix.
-- 51 unit/doc/white-box tests and 16 CLI transcript tests pass.
+- 56 unit/doc/white-box tests and 16 CLI transcript tests pass.
 - Library-package coverage is 1087/1286 executable lines (84.5%). CLI transcript
   coverage is tracked separately by cram tests.
-- Checklist progress is 9/30 fully complete: all six P0 blockers plus target
-  declarations, directive rejection, and CLI failure behavior.
+- Checklist progress is 11/30 fully complete: all six P0 blockers plus target
+  declarations, directive rejection, CLI failure behavior, interface review, and
+  parser diagnostics.
 - Rough completeness estimate: about 80% of the README-promised subset, 60-65%
   of a dependable small pure-Prolog core, and 25-30% of the surface normally
   expected from a conventional Prolog implementation.
@@ -123,13 +124,13 @@ reliable, and complete P1 before describing the project as beta quality.
   handling and mixed integer/float comparison semantics. Add boundary and
   property tests on every supported backend.
 
-- [ ] Improve parser correctness and diagnostics.
+- [x] Improve parser correctness and diagnostics.
 
-  Tokens now store line and column, diagnostics report both, and basic error
-  locations have regression coverage. Finish tests for escaped quotes, malformed
-  escapes, comments, Unicode input, exponent notation, deeply nested terms, and
-  printer/parser round trips. Replace recursive list construction, list checks,
-  and other easily exhausted paths where practical.
+  Tokens store line and column, diagnostics report both, exponent notation is
+  parsed, and escaped quotes, malformed escapes, comments, Unicode input, deeply
+  nested terms, and printer/parser round trips all have regression coverage.
+  Replacing recursive list construction and other easily exhausted paths is
+  tracked under the P2 profiling item.
 
 - [x] Reject unsupported directives instead of silently ignoring them.
 
@@ -155,11 +156,11 @@ reliable, and complete P1 before describing the project as beta quality.
   `cmd/prolog` is declared for native and wasm. CI checks all declared targets,
   runs wasm unit tests, and builds both native and wasm CLI targets.
 
-- [ ] Eliminate compiler warnings and enforce interface review.
+- [x] Eliminate compiler warnings and enforce interface review.
 
-  Resolve the seven current derive/implicit-method deprecation warnings. Keep
-  generated `.mbti` interfaces up to date with `moon info`, and review API diffs
-  in CI or code review.
+  The deprecation warnings are gone and `moon check --target all` is clean. CI
+  regenerates interfaces with `moon info` and fails if any tracked `.mbti` file
+  drifts from the committed API.
 
 ## P2 - API, tests, and maintainability
 
@@ -230,10 +231,8 @@ reliable, and complete P1 before describing the project as beta quality.
 
 ## Recommended implementation order
 
-1. Close the two remaining P0 edges: local completion state for nested negation
-   and defined zero-solution-limit behavior, with regressions.
-2. Replace the truncation Boolean with structured completion/error outcomes.
-3. Convert built-in answer generation to lazy choice points and make partial
+1. Replace the truncation Boolean with structured completion/error outcomes.
+2. Convert built-in answer generation to lazy choice points and make partial
    relation modes explicit.
-4. Lock down the dialect with conformance/property tests and target-matrix CI.
-5. Profile and improve internals, then consider P3 language features.
+3. Lock down the dialect with conformance/property tests and target-matrix CI.
+4. Profile and improve internals, then consider P3 language features.

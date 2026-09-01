@@ -568,13 +568,10 @@ fn Parser::parse_program(self : Parser) -> Program raise PrologError {
   let clauses : Array[Clause] = []
   while self.pos < self.toks.length() - 1 {
     match self.peek() {
-      Op(":-") => {
-        // directive: parsed and ignored
-        ignore(self.next())
-        ignore(self.parse_term(0))
-        self.expect_dot()
-        continue
-      }
+      Op(":-") =>
+        raise PrologError::Parse(
+          "unsupported directive (line \{self.toks[self.pos].line})",
+        )
       _ => ()
     }
     let head = self.parse_term(0)

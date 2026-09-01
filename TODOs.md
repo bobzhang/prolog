@@ -32,7 +32,7 @@ reliable, and complete P1 before describing the project as beta quality.
 
 ## P0 - Correctness blockers
 
-- [ ] Make all interpreter-created variables hygienically fresh.
+- [x] Make all interpreter-created variables hygienically fresh.
 
   Clause variables are renamed by appending a numeric suffix, and list built-ins
   generate visible names such as `_g0`. Both can collide with legal variables in
@@ -45,7 +45,7 @@ reliable, and complete P1 before describing the project as beta quality.
   disjoint from every parsed and public-API-created variable. Add regressions for
   query/clause, nested-clause, anonymous-variable, and built-in collisions.
 
-- [ ] Fix `append/3` so corresponding list elements are unified, not compared
+- [x] Fix `append/3` so corresponding list elements are unified, not compared
   with structural equality.
 
   `append([X], [b], [a, b])` currently fails instead of binding `X = a`.
@@ -53,21 +53,21 @@ reliable, and complete P1 before describing the project as beta quality.
   the suffix. Cover variables on both sides, repeated variables, open lists, and
   failures caused by inconsistent bindings.
 
-- [ ] Require complete consumption of queries and standalone terms.
+- [x] Require complete consumption of queries and standalone terms.
 
   After an optional terminating dot, only EOF should be accepted. The query
   `X = 1. X = 2` currently runs as `X = 1` and silently ignores the rest. Test
   trailing terms, operators, dots, comments, and whitespace through both
   `Program::query` and `Term::parse`.
 
-- [ ] Preserve goal depth when backtracking into a disjunction.
+- [x] Preserve goal depth when backtracking into a disjunction.
 
   `Choice::Goal` restores its alternative at depth 0. As a result, with DFS depth
   1, `p :- (q; r). r.` incorrectly succeeds. Store and restore the original goal
   depth, then add nested disjunction/conjunction/call tests at exact depth
   boundaries.
 
-- [ ] Make bounded negation sound.
+- [x] Make bounded negation sound.
 
   A negated sub-search that reaches a depth or step bound is currently treated as
   ordinary failure, so `\+ loop` can return `true` while also setting
@@ -75,7 +75,7 @@ reliable, and complete P1 before describing the project as beta quality.
   present an incomplete negation as definitive success. Document whether the
   public API returns an explicit unknown result or raises a resource-limit error.
 
-- [ ] Correct limit accounting and validate every `Options` value.
+- [x] Correct limit accounting and validate every `Options` value.
 
   With `max_steps = 1`, the query `true` is processed but is never emitted because
   the budget check runs before solution detection. A depth of 0 also returns

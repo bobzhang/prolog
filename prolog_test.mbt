@@ -514,14 +514,16 @@ test "strings unify and display" {
 }
 
 ///|
-test "programs ignore directives and comments" {
-  let p =
-    #|% a comment
+test "programs reject unsupported directives and ignore comments" {
+  let directive =
     #|:- op(500, xfy, fun).
+  assert_true(parse_error(directive).contains("unsupported directive"))
+  let ok =
+    #|% a comment
     #|/* block
     #|   comment */
     #|likes(sam, apple).
-  assert_eq(sols(p, "likes(sam, apple)"), ["true"])
+  assert_eq(sols(ok, "likes(sam, apple)"), ["true"])
 }
 
 ///|

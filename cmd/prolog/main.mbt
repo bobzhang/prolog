@@ -201,8 +201,96 @@ async fn run_query(
 }
 
 ///|
-/// Interactive mode: read queries from standard input, one per line (a query
-/// may span lines until one ends with `.`). `halt.` quits.
+/// True when `text` is a complete statement: brackets balanced, not inside a
+/// quoted string or comment, and the last significant character is `.`.
+fn statement_complete(text : String) -> Bool {
+  let n = text.length()
+  let mut i = 0
+  let mut depth = 0
+  let mut in_squote = false
+  let mut in_dquote = false
+  let mut saw_dot = false
+  while i < n {
+    let c = text[i]
+    if in_squote {
+      if c == '\\' && i + 1 < n {
+        i += 2
+        continue
+      }
+      if c == '\'' {
+        in_squote = false
+      }
+      i += 1
+      continue
+    }
+    if in_dquote {
+      if c == '\\' && i + 1 < n {
+        i += 2
+        continue
+      }
+      if c == '"' {
+        in_dquote = false
+      }
+      i += 1
+      continue
+    }
+    if c == '%' {
+      while i < n && text[i] != '\n' {
+        i += 1
+      }
+      continue
+    }
+    if c == '/' && i + 1 < n && text[i + 1] == '*' {
+      i += 2
+      while i + 1 < n && !(text[i] == '*' && text[i + 1] == '/') {
+        i += 1
+      }
+      i += 2
+      continue
+    }
+    if c == '\'' {
+      in_squote = true
+      saw_dot = false
+      i += 1
+      continue
+    }
+    if c == '"' {
+      in_dquote = true
+      saw_dot = false
+      i += 1
+      continue
+    }
+    if c == '(' || c == '[' {
+      depth += 1
+      saw_dot = false
+      i += 1
+      continue
+    }
+    if c == ')' || c == ']' {
+      depth -= 1
+      saw_dot = false
+      i += 1
+      continue
+    }
+    if c == ' ' || c == '\t' || c == '\r' || c == '\n' {
+      i += 1
+      continue
+    }
+    if c == '.' {
+      saw_dot = true
+      i += 1
+      continue
+    }
+    saw_dot = false
+    i += 1
+  }
+  depth == 0 && !in_squote && !in_dquote && saw_dot
+}
+
+///|
+/// Interactive mode: read queries from standard input. A statement is complete
+/// only when its brackets are balanced and its last significant character is
+/// `.`, so a query may span several lines. `halt.` quits.
 async fn repl(program : @lib.Program, opts : @lib.Options) -> Unit noraise {
   let mut buffer : Array[String] = []
   while true {
@@ -210,7 +298,7 @@ async fn repl(program : @lib.Program, opts : @lib.Options) -> Unit noraise {
     match line {
       None => {
         if !buffer.is_empty() {
-          ignore(run_query(program, opts, buffer.join("")))
+          ignore(run_query(program, opts, buffer.join("\n")))
         }
         break
       }
@@ -223,8 +311,8 @@ async fn repl(program : @lib.Program, opts : @lib.Options) -> Unit noraise {
           break
         }
         buffer.push(l)
-        if trimmed.has_suffix(".") {
-          ignore(run_query(program, opts, buffer.join("")))
+        if statement_complete(buffer.join("\n")) {
+          ignore(run_query(program, opts, buffer.join("\n")))
           buffer = []
         }
       }

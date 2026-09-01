@@ -110,3 +110,21 @@ Invalid numeric flags fail with a usage error:
 $ prolog.exe --depth=-1 --query "true"
 [2]
 ```
+
+The REPL collects a statement until its brackets are balanced and it ends in
+`.`, so a query may span several lines and strings may contain newlines:
+
+```mooncram
+$ prolog.exe <<'EOF'
+> (X = 1;
+>  X = 2).
+> write("hello.
+> world").
+> halt.
+> EOF
+X = 1
+X = 2
+hello.
+worldtrue
+```
+

@@ -22,12 +22,12 @@ Current baseline:
 
 - `moon fmt --check`, `moon check --target all`, `moon test`, and CLI cram tests
   pass for the declared target matrix.
-- 56 unit/doc/white-box tests and 16 CLI transcript tests pass.
+- 57 unit/doc/white-box tests and 17 CLI transcript tests pass.
 - Library-package coverage is 1087/1286 executable lines (84.5%). CLI transcript
   coverage is tracked separately by cram tests.
-- Checklist progress is 11/30 fully complete: all six P0 blockers plus target
-  declarations, directive rejection, CLI failure behavior, interface review, and
-  parser diagnostics.
+- Checklist progress is 12/30 fully complete: all six P0 blockers plus target
+  declarations, directive rejection, CLI failure behavior, interface review,
+  parser diagnostics, and the syntax-aware REPL.
 - Rough completeness estimate: about 80% of the README-promised subset, 60-65%
   of a dependable small pure-Prolog core, and 25-30% of the surface normally
   expected from a conventional Prolog implementation.
@@ -145,11 +145,11 @@ reliable, and complete P1 before describing the project as beta quality.
   negative numeric flags are rejected. Cram tests cover repeated queries,
   evaluation failure status, and invalid numeric flags.
 
-- [ ] Make REPL statement collection syntax-aware.
+- [x] Make REPL statement collection syntax-aware.
 
-  Do not decide completeness only from whether the trimmed line ends in `.`.
-  Track brackets, parentheses, quoted strings, escapes, and comments, and provide
-  useful EOF diagnostics for incomplete input. Add interactive transcript tests.
+  Statement completeness now tracks bracket depth, quoted strings, escapes, and
+  comments, so a query may span lines and strings may contain newlines. A cram
+  transcript test drives the REPL over stdin.
 
 - [x] Declare and continuously test the supported target matrix.
 

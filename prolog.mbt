@@ -117,6 +117,23 @@ fn Bindings::set(self : Bindings, name : String, t : Term) -> Bindings {
 }
 
 ///|
+
+///|
+/// Why a search stopped short of full exploration.
+pub enum Completion {
+  /// Every reachable answer was emitted.
+  Complete
+  /// Cut off by the resolution-depth bound.
+  Depth
+  /// Cut off by the inference-step budget.
+  Steps
+  /// Cut off by the solution-count cap.
+  Solutions
+  /// A negated sub-search was cut off, so the result is unknown.
+  IncompleteNegation
+} derive(Eq, Debug)
+
+///|
 /// The result of running a query.
 pub struct QueryResult {
   /// Solutions in search order.
@@ -125,7 +142,25 @@ pub struct QueryResult {
   vars : Array[String]
   /// Output produced by `write/1` and `nl/0` during the search.
   output : String
-  /// True when the search space was cut off by a bound (depth, steps, or
-  /// solution count); more answers may exist.
-  truncated : Bool
+  /// Why the search stopped; `Complete` when every answer was emitted.
+  completion : Completion
+}
+
+///|
+/// True when the search explored everything reachable.
+pub fn QueryResult::is_complete(self : QueryResult) -> Bool {
+  self.completion == Completion::Complete
+}
+
+///|
+/// A short name for the completion reason: `"complete"`, `"depth"`,
+/// `"steps"`, `"solutions"`, or `"incomplete-negation"`.
+pub fn QueryResult::completion_name(self : QueryResult) -> String {
+  match self.completion {
+    Completion::Complete => "complete"
+    Completion::Depth => "depth"
+    Completion::Steps => "steps"
+    Completion::Solutions => "solutions"
+    Completion::IncompleteNegation => "incomplete-negation"
+  }
 }

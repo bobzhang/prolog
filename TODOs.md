@@ -22,12 +22,12 @@ Current baseline:
 
 - `moon fmt --check`, `moon check --target all`, `moon test`, and CLI cram tests
   pass for the declared target matrix.
-- 57 unit/doc/white-box tests and 17 CLI transcript tests pass.
+- 58 unit/doc/white-box tests and 17 CLI transcript tests pass.
 - Library-package coverage is 1087/1286 executable lines (84.5%). CLI transcript
   coverage is tracked separately by cram tests.
-- Checklist progress is 12/30 fully complete: all six P0 blockers plus target
+- Checklist progress is 13/30 fully complete: all six P0 blockers plus target
   declarations, directive rejection, CLI failure behavior, interface review,
-  parser diagnostics, and the syntax-aware REPL.
+  parser diagnostics, the syntax-aware REPL, and structured completion data.
 - Rough completeness estimate: about 80% of the README-promised subset, 60-65%
   of a dependable small pure-Prolog core, and 25-30% of the surface normally
   expected from a conventional Prolog implementation.
@@ -79,11 +79,12 @@ reliable, and complete P1 before describing the project as beta quality.
 
 ## P1 - Semantic clarity and robustness
 
-- [ ] Replace `QueryResult::truncated : Bool` with structured completion data.
+- [x] Replace `QueryResult::truncated : Bool` with structured completion data.
 
-  Distinguish at least depth, inference-step, solution-count, bounded-generator,
-  and incomplete-negation outcomes. Preserve the best round's completion reason
-  during iterative deepening and show the specific reason in the CLI.
+  `QueryResult::completion` now distinguishes depth, inference-step,
+  solution-count, and incomplete-negation outcomes (a bounded-generator outcome
+  remains pending lazy built-ins). Iterative deepening preserves the best
+  round's completion reason, and the CLI prints the specific reason.
 
 - [ ] Specify iterative-deepening answer and duplicate semantics.
 
@@ -231,8 +232,7 @@ reliable, and complete P1 before describing the project as beta quality.
 
 ## Recommended implementation order
 
-1. Replace the truncation Boolean with structured completion/error outcomes.
-2. Convert built-in answer generation to lazy choice points and make partial
+1. Convert built-in answer generation to lazy choice points and make partial
    relation modes explicit.
-3. Lock down the dialect with conformance/property tests and target-matrix CI.
-4. Profile and improve internals, then consider P3 language features.
+2. Lock down the dialect with conformance/property tests and target-matrix CI.
+3. Profile and improve internals, then consider P3 language features.

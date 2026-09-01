@@ -78,8 +78,8 @@ Queries run a **bounded** search (see `Options`). By default:
   searches produce the same answers, in the same order, as classic
   depth-first Prolog, while left-recursive programs cannot loop forever;
 - at most `max_steps` inference steps and `max_solutions` answers per
-  query; `QueryResult::truncated` reports whether a bound cut the search
-  space off.
+  query; `QueryResult::completion` reports whether (and why) a bound cut the
+  search space off.
 
 ## Command line
 

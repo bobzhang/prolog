@@ -46,6 +46,14 @@ pub struct Clause {
   body : Term
 }
 
+pub enum Completion {
+  Complete
+  Depth
+  Steps
+  Solutions
+  IncompleteNegation
+} derive(Eq, @debug.Debug)
+
 type Num derive(Eq, @debug.Debug)
 
 pub struct Options {
@@ -68,9 +76,10 @@ pub struct QueryResult {
   solutions : Array[Bindings]
   vars : Array[String]
   output : String
-  truncated : Bool
+  completion : Completion
 }
 pub fn QueryResult::answer_lines(Self) -> Array[String]
+pub fn QueryResult::is_complete(Self) -> Bool
 
 pub enum Term {
   Var(String)

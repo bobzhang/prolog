@@ -354,7 +354,7 @@ test "left-recursive loop terminates" {
   assert_eq(sols(p, "done"), ["true"])
   let r = result_with(p, "loop", @prolog.Options::make(8, true, 1_000_000, 10))
   assert_eq(r.solutions.length(), 0)
-  assert_true(r.truncated)
+  assert_false(r.is_complete())
 }
 
 ///|
@@ -366,7 +366,7 @@ test "quicksort in pure Prolog" {
     opts,
   )
   assert_eq(r.answer_lines(), ["S = [1, 1, 2, 3, 4, 5, 6, 9]"])
-  assert_false(r.truncated)
+  assert_true(r.is_complete())
 }
 
 ///|
@@ -484,15 +484,15 @@ test "search bounds are respected" {
   let opts = @prolog.Options::make(5, false, 1_000_000, 1_000)
   let r = result_with(p, "p(N)", opts)
   assert_eq(r.answer_lines(), ["N = 0", "N = 1", "N = 2", "N = 3", "N = 4"])
-  assert_true(r.truncated)
+  assert_false(r.is_complete())
   let opts2 = @prolog.Options::make(5, true, 1_000_000, 1_000)
   let r2 = result_with(p, "p(N)", opts2)
   assert_eq(r2.answer_lines(), ["N = 0", "N = 1", "N = 2", "N = 3", "N = 4"])
-  assert_true(r2.truncated)
+  assert_false(r2.is_complete())
   let opts3 = @prolog.Options::make(10, true, 1_000_000, 3)
   let r3 = result_with(p, "p(N)", opts3)
   assert_eq(r3.answer_lines(), ["N = 0", "N = 1", "N = 2"])
-  assert_true(r3.truncated)
+  assert_false(r3.is_complete())
 }
 
 ///|
@@ -500,7 +500,7 @@ test "dfs and ilds agree on finite search" {
   let opts = @prolog.Options::make(32, false, 1_000_000, 1_000)
   let r = result_with("", "member(X, [a, b])", opts)
   assert_eq(r.answer_lines(), ["X = a", "X = b"])
-  assert_false(r.truncated)
+  assert_true(r.is_complete())
 }
 
 ///|
@@ -509,7 +509,7 @@ test "public API surface" {
   assert_eq(r.answer_lines(), ["true"])
   assert_eq(r.solutions.length(), 1)
   assert_eq(r.solutions[0].names(), [])
-  assert_false(r.truncated)
+  assert_true(r.is_complete())
   assert_eq(r.output, "")
   let r2 = result("", "X = 1")
   assert_eq(r2.solutions[0].get("X"), Some(@prolog.int(1)))
@@ -569,7 +569,7 @@ test "disjunction preserves goal depth" {
   let opts1 = @prolog.Options::make(1, false, 1_000_000, 10)
   let r1 = result_with(p, "p", opts1)
   assert_eq(r1.solutions.length(), 0)
-  assert_true(r1.truncated)
+  assert_false(r1.is_complete())
   let opts2 = @prolog.Options::make(2, false, 1_000_000, 10)
   assert_eq(result_with(p, "p", opts2).answer_lines(), ["true"])
 }
@@ -583,7 +583,7 @@ test "negation is sound under bounds" {
     @prolog.Options::make(8, false, 100_000, 10),
   )
   assert_eq(r.solutions.length(), 0)
-  assert_true(r.truncated)
+  assert_false(r.is_complete())
   assert_eq(sols("", "\\+ member(3, [1, 2])"), ["true"])
   assert_eq(sols("", "\\+ member(1, [1, 2])"), [])
 }
@@ -599,7 +599,7 @@ test "negation after a truncated branch is not a false success" {
     @prolog.Options::make(1, false, 1_000_000, 10),
   )
   assert_eq(r.solutions.length(), 0)
-  assert_true(r.truncated)
+  assert_false(r.is_complete())
 }
 
 ///|
@@ -607,7 +607,7 @@ test "limit boundaries are exact" {
   // A single builtin goal fits in a one-step budget.
   let r1 = result_with("", "true", @prolog.Options::make(32, false, 1, 10))
   assert_eq(r1.answer_lines(), ["true"])
-  assert_false(r1.truncated)
+  assert_true(r1.is_complete())
   // A conjunction needs more than one step.
   let r2 = result_with(
     "",
@@ -615,7 +615,7 @@ test "limit boundaries are exact" {
     @prolog.Options::make(32, false, 1, 10),
   )
   assert_eq(r2.solutions.length(), 0)
-  assert_true(r2.truncated)
+  assert_false(r2.is_complete())
   // Depth 0 allows builtins but rejects every clause.
   let r3 = result_with(
     "",
@@ -623,14 +623,14 @@ test "limit boundaries are exact" {
     @prolog.Options::make(0, false, 100_000, 10),
   )
   assert_eq(r3.answer_lines(), ["X = 1"])
-  assert_false(r3.truncated)
+  assert_true(r3.is_complete())
   let r4 = result_with(
     "p(a).",
     "p(X)",
     @prolog.Options::make(0, false, 100_000, 10),
   )
   assert_eq(r4.solutions.length(), 0)
-  assert_true(r4.truncated)
+  assert_false(r4.is_complete())
 }
 
 ///|
@@ -700,4 +700,43 @@ test "deeply nested terms parse and display" {
   }
   let text = sb.to_string()
   assert_eq(@prolog.Term::parse(text).to_string(), text)
+}
+
+///|
+test "completion reasons are specific" {
+  // Depth-bound truncation.
+  let d = result_with(
+    "loop :- loop.",
+    "loop",
+    @prolog.Options::make(2, false, 1_000_000, 10),
+  )
+  assert_eq(d.completion_name(), "depth")
+  // Step-budget truncation.
+  let s = result_with(
+    "",
+    "X = 1, Y = 2",
+    @prolog.Options::make(32, false, 1, 10),
+  )
+  assert_eq(s.completion_name(), "steps")
+  // Solution-cap truncation.
+  let c = result_with(
+    "p(0). p(N) :- p(M), N is M + 1.",
+    "p(N)",
+    @prolog.Options::make(10, false, 1_000_000, 3),
+  )
+  assert_eq(c.completion_name(), "solutions")
+  // Incomplete negation.
+  let n = result_with(
+    "loop :- loop.",
+    "\\+ loop",
+    @prolog.Options::make(8, false, 100_000, 10),
+  )
+  assert_eq(n.completion_name(), "incomplete-negation")
+  // Finite search is complete.
+  let ok = result_with(
+    "",
+    "member(X, [a, b])",
+    @prolog.Options::make(32, false, 1_000_000, 10),
+  )
+  assert_eq(ok.completion_name(), "complete")
 }

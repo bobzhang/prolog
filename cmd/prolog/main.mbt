@@ -188,8 +188,17 @@ async fn run_query(
       }
     }
   }
-  if result.truncated {
-    if !stderr_write("% note: search truncated by limits\n") {
+  let note = match result.completion {
+    @lib.Completion::Complete => ""
+    @lib.Completion::Depth => "% note: search truncated by depth limit"
+    @lib.Completion::Steps =>
+      "% note: search truncated by inference-step budget"
+    @lib.Completion::Solutions => "% note: search truncated by solution limit"
+    @lib.Completion::IncompleteNegation =>
+      "% note: result is incomplete (bounded negation)"
+  }
+  if note != "" {
+    if !stderr_write("\{note}\n") {
       ok = false
     }
   }

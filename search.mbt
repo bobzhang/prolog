@@ -125,7 +125,7 @@ fn run_search(
           continue
         }
         if d0 >= limit {
-          st.truncated = true
+          st.completion = Completion::Depth
           st.truncated_by_depth = true
           st.truncation_epoch += 1
           pending = Some((f, ar, idx + 1, g, rest, b0, d0))
@@ -168,7 +168,7 @@ fn run_search(
       continue
     }
     if st.steps >= opts.max_steps {
-      st.truncated = true
+      st.completion = Completion::Steps
       st.truncation_epoch += 1
       return
     }
@@ -437,12 +437,20 @@ fn run_search(
               false
             }
             let epoch_before = st.truncation_epoch
+            let completion_before = st.completion
+            let depth_before = st.truncated_by_depth
             run_search(prog, [(args[0], gd)], binds, limit, opts, st, naf_emit)
             // An incomplete negation (the sub-search hit a bound without a
             // proof) is not a proof of absence: fail rather than succeed.
             // The epoch counter makes this local: a bound hit by an earlier
             // branch cannot mask this sub-search's own bound.
             let incomplete = !found.val && st.truncation_epoch != epoch_before
+            if incomplete {
+              st.completion = Completion::IncompleteNegation
+            } else {
+              st.completion = completion_before
+              st.truncated_by_depth = depth_before
+            }
             if found.val || incomplete {
               backtrack()
               if done {

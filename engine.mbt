@@ -9,7 +9,7 @@ priv struct SearchState {
   mut next_var : Int
   mut solutions : Array[Bindings]
   mut out : Array[String]
-  mut truncated : Bool
+  mut completion : Completion
   /// The search was cut off by the depth limit (as opposed to the step or
   /// solution budgets), so a deeper round may find more.
   mut truncated_by_depth : Bool
@@ -197,7 +197,7 @@ pub fn Program::query(
 /// depth-first search. With `ilds = false` a single bounded depth-first
 /// pass is used. Either way the search is bounded by `max_depth`,
 /// `max_steps`, and `max_solutions`; when a bound cuts the search space
-/// off, `truncated` is set on the result.
+/// off, the result's `completion` reports the bound.
 pub fn Program::query_with(
   self : Program,
   goal : String,
@@ -212,28 +212,28 @@ pub fn Program::query_with(
     next_var: 0,
     solutions: [],
     out: [],
-    truncated: false,
+    completion: Completion::Complete,
     truncated_by_depth: false,
     truncation_epoch: 0,
   }
   let emit = (b : Bindings) => {
     if st.solutions.length() >= opts.max_solutions {
-      st.truncated = true
+      st.completion = Completion::Solutions
       st.truncation_epoch += 1
       return false
     }
     st.solutions.push(b)
     true
   }
-  let mut best : (Array[Bindings], Array[String])? = None
+  let mut best : (Array[Bindings], Array[String], Completion)? = None
   fn run_round(limit : Int) -> Unit raise PrologError {
     st.solutions = []
     st.out = []
-    st.truncated = false
+    st.completion = Completion::Complete
     st.truncated_by_depth = false
     run_search(self, [(g, 0)], Bindings::empty(), limit, opts, st, emit)
     if !st.solutions.is_empty() {
-      best = Some((st.solutions, st.out))
+      best = Some((st.solutions, st.out, st.completion))
     }
   }
   if opts.ilds {
@@ -243,7 +243,7 @@ pub fn Program::query_with(
       // Stop when the round completed, or when the search budget (rather
       // than the depth bound) cut it short: deeper rounds would add
       // nothing.
-      if !st.truncated || !st.truncated_by_depth {
+      if st.completion == Completion::Complete || !st.truncated_by_depth {
         break
       }
       d += 1
@@ -255,9 +255,10 @@ pub fn Program::query_with(
   // round that did find solutions rather than returning nothing.
   if st.solutions.is_empty() {
     match best {
-      Some((sols, out)) => {
+      Some((sols, out, completion)) => {
         st.solutions = sols
         st.out = out
+        st.completion = completion
       }
       None => ()
     }
@@ -266,7 +267,7 @@ pub fn Program::query_with(
     solutions: st.solutions,
     vars,
     output: join_strings(st.out),
-    truncated: st.truncated,
+    completion: st.completion,
   }
 }
 

@@ -19,6 +19,12 @@ enum TokKind {
 } derive(Eq, Debug)
 
 ///|
+pub extend TokKind with Eq::{not_equal, equal}
+
+///|
+pub extend TokKind with Debug::{to_repr}
+
+///|
 priv struct Tok {
   kind : TokKind
   line : Int

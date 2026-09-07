@@ -16,6 +16,12 @@ pub enum Term {
 } derive(Eq, Debug)
 
 ///|
+pub extend Term with Eq::{not_equal, equal}
+
+///|
+pub extend Term with Debug::{to_repr}
+
+///|
 /// The empty list `[]`.
 pub fn empty_list() -> Term {
   Atom("[]")

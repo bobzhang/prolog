@@ -9,6 +9,12 @@ enum Num {
 } derive(Eq, Debug)
 
 ///|
+pub extend Num with Eq::{not_equal, equal}
+
+///|
+pub extend Num with Debug::{to_repr}
+
+///|
 fn Num::to_term(self : Num) -> Term {
   match self {
     I(n) => Int(n)

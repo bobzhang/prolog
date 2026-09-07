@@ -134,6 +134,12 @@ pub enum Completion {
 } derive(Eq, Debug)
 
 ///|
+pub extend Completion with Eq::{not_equal, equal}
+
+///|
+pub extend Completion with Debug::{to_repr}
+
+///|
 /// The result of running a query.
 pub struct QueryResult {
   /// Solutions in search order.

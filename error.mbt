@@ -8,6 +8,9 @@ pub suberror PrologError {
 } derive(Debug)
 
 ///|
+pub extend PrologError with Debug::{to_repr}
+
+///|
 /// The human-readable error message.
 pub fn PrologError::message(self : PrologError) -> String {
   match self {

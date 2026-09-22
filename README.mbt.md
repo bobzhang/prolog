@@ -36,7 +36,7 @@ test {
     #|parent(mary, tom).
     #|ancestor(X, Y) :- parent(X, Y).
     #|ancestor(X, Y) :- parent(X, Z), ancestor(Z, Y).
-  let p = Program::parse(program_text) catch { e => fail(e.message()) }
+  let p = @prolog.Program::parse(program_text) catch { e => fail(e.message()) }
   assert_eq(p.query("ancestor(john, X)").answer_lines(), [
     "X = mary", "X = ann", "X = tom",
   ])
@@ -48,7 +48,7 @@ Unification, arithmetic, and list built-ins:
 ```mbt check
 ///|
 test {
-  let p = Program::parse("") catch { e => fail(e.message()) }
+  let p = @prolog.Program::parse("") catch { e => fail(e.message()) }
   assert_eq(p.query("X = f(Y), Y = 2").answer_lines(), ["X = f(2), Y = 2"])
   assert_eq(p.query("X is 1 + 2 * 3").answer_lines(), ["X = 7"])
   assert_eq(p.query("append(X, Y, [1, 2])").answer_lines(), [
@@ -62,7 +62,7 @@ test {
 ```mbt check
 ///|
 test {
-  let p = Program::parse("") catch { e => fail(e.message()) }
+  let p = @prolog.Program::parse("") catch { e => fail(e.message()) }
   let r = p.query("(X = 1; X = 2), write(X), nl")
   assert_eq(r.output, "1\n2\n")
   assert_eq(r.answer_lines(), ["X = 1", "X = 2"])

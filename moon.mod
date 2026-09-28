@@ -32,6 +32,6 @@ preferred_target = "wasm"
 description = "A small Prolog interpreter in MoonBit: SLD resolution with iterative deepening, cut, negation-as-failure, arithmetic, and list built-ins."
 
 import {
-  "moonbitlang/async@0.21.2",
+  "moonbitlang/async@0.22.4",
   "moonbitlang/x@0.5.1",
 }

@@ -40,7 +40,7 @@ fn first(prog : String, query : String) -> String raise TestFailure {
 }
 
 ///|
-fn count(prog : String, query : String) -> Int raise TestFailure {
+fn count(prog : String, query : String) -> Int32 raise TestFailure {
   result(prog, query).solutions.length()
 }
 

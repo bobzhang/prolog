@@ -18,7 +18,7 @@ async fn main {
 }
 
 ///|
-async fn run() -> Int raise CliError {
+async fn run() -> Int32 raise CliError {
   let matches = @argparse.parse(
     @argparse.Command(
       "prolog",
@@ -117,10 +117,10 @@ fn opts_from_matches(
   matches : @argparse.Matches,
 ) -> @lib.Options raise CliError {
   let base = @lib.Options::new()
-  fn int_opt(name : String, default : Int) -> Int raise CliError {
+  fn int_opt(name : String, default : Int32) -> Int32 raise CliError {
     match matches.values.get(name) {
       Some([v, ..]) => {
-        let x : Int = @string.from_str(v) catch {
+        let x : Int32 = @string.from_str(v) catch {
           _ => raise CliError::Msg("invalid integer for --\{name}: \{v}")
         }
         if x < 0 {
@@ -164,7 +164,7 @@ async fn run_query(
   program : @lib.Program,
   opts : @lib.Options,
   text : String,
-) -> Int noraise {
+) -> Int32 noraise {
   let result = program.query_with(text, opts) catch {
     e => {
       ignore(stderr_write("error: \{e.message()}\n"))

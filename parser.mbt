@@ -3,7 +3,7 @@
 enum TokKind {
   Atom(String)
   Var(String)
-  NumInt(Int)
+  NumInt(Int32)
   NumFloat(Double)
   Str(String)
   LParen
@@ -27,8 +27,8 @@ pub extend TokKind with Debug::{to_repr}
 ///|
 priv struct Tok {
   kind : TokKind
-  line : Int
-  col : Int
+  line : Int32
+  col : Int32
 }
 
 ///|
@@ -211,7 +211,7 @@ fn lex(src : StringView) -> Array[Tok] raise PrologError {
         continue
       }
       let text = src[i:j].to_owned()
-      let v : Int = @string.from_str(text) catch {
+      let v : Int32 = @string.from_str(text) catch {
         _ =>
           raise PrologError::Parse(
             "invalid integer literal (line \{line}, column \{col})",
@@ -328,11 +328,11 @@ fn lex(src : StringView) -> Array[Tok] raise PrologError {
 ///|
 fn lex_quoted(
   src : StringView,
-  start : Int,
-  line : Int,
-  col : Int,
+  start : Int32,
+  line : Int32,
+  col : Int32,
   quote : UInt16,
-) -> (String, Int, Int, Int) raise PrologError {
+) -> (String, Int32, Int32, Int32) raise PrologError {
   let n = src.length()
   let mut j = start + 1
   let mut l = line
@@ -377,8 +377,8 @@ fn lex_quoted(
 /// Pratt parser over the token stream.
 priv struct Parser {
   toks : Array[Tok]
-  mut pos : Int
-  mut anon : Int
+  mut pos : Int32
+  mut anon : Int32
 }
 
 ///|
@@ -394,19 +394,19 @@ fn Parser::next(self : Parser) -> TokKind {
 }
 
 ///|
-fn Parser::cur_line(self : Parser) -> Int {
+fn Parser::cur_line(self : Parser) -> Int32 {
   self.toks[self.pos - 1].line
 }
 
 ///|
-fn Parser::cur_col(self : Parser) -> Int {
+fn Parser::cur_col(self : Parser) -> Int32 {
   self.toks[self.pos - 1].col
 }
 
 ///|
 /// Infix operator table: `(operator, tightness, right-operand tightness)`.
 /// Higher tightness binds tighter (ISO Prolog precedences inverted).
-fn infix_info(op : String) -> (String, Int, Int)? {
+fn infix_info(op : String) -> (String, Int32, Int32)? {
   match op {
     ";" => Some((op, 400, 399))
     "," => Some((op, 500, 499))
@@ -453,10 +453,13 @@ fn Parser::peek_op(self : Parser) -> String {
 }
 
 ///|
-fn Parser::parse_term(self : Parser, min_tight : Int) -> Term raise PrologError {
+fn Parser::parse_term(
+  self : Parser,
+  min_tight : Int32,
+) -> Term raise PrologError {
   let mut left = self.parse_primary()
   while true {
-    let info : (String, Int, Int)? = match self.peek() {
+    let info : (String, Int32, Int32)? = match self.peek() {
       Op(op) => infix_info(op)
       Atom(a) => infix_info(a)
       Comma => infix_info(",")
@@ -554,7 +557,10 @@ fn Parser::parse_primary(self : Parser) -> Term raise PrologError {
 }
 
 ///|
-fn Parser::parse_list(self : Parser, min_tight : Int) -> Term raise PrologError {
+fn Parser::parse_list(
+  self : Parser,
+  min_tight : Int32,
+) -> Term raise PrologError {
   match self.peek() {
     RBracket => {
       ignore(self.next())

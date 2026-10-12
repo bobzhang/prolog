@@ -16,14 +16,14 @@ pub struct Clause {
 pub struct Options {
   /// Maximum resolution depth: the number of clause applications allowed in
   /// a derivation (default 32).
-  max_depth : Int
+  max_depth : Int32
   /// Iterative deepening search (fair; default). When `false`, a single
   /// bounded depth-first pass is used.
   ilds : Bool
   /// Maximum inference steps per search (safety bound; default 1 000 000).
-  max_steps : Int
+  max_steps : Int32
   /// Maximum number of solutions collected (default 1000).
-  max_solutions : Int
+  max_solutions : Int32
 }
 
 ///|
@@ -35,10 +35,10 @@ pub fn Options::new() -> Options {
 ///|
 /// Build search options explicitly.
 pub fn Options::make(
-  max_depth : Int,
+  max_depth : Int32,
   ilds : Bool,
-  max_steps : Int,
-  max_solutions : Int,
+  max_steps : Int32,
+  max_solutions : Int32,
 ) -> Options {
   { max_depth, ilds, max_steps, max_solutions, }
 }
@@ -54,10 +54,10 @@ pub struct Bindings {
 
 ///|
 /// The number of hash buckets used by bindings.
-const BINDING_BUCKETS : Int = 8
+const BINDING_BUCKETS : Int32 = 8
 
 ///|
-fn bucket_of(name : String) -> Int {
+fn bucket_of(name : String) -> Int32 {
   let mut h = 7
   for c in name {
     h = h * 31 + c.to_int()

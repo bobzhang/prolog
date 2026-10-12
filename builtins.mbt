@@ -4,7 +4,7 @@
 ///|
 /// An arithmetic value: integer or float.
 enum Num {
-  I(Int)
+  I(Int32)
   F(Double)
 } derive(Eq, Debug)
 
@@ -236,7 +236,7 @@ fn proper_list(binds : Bindings, t : Term) -> Array[Term]? {
 
 ///|
 /// Generate a proper list of `k` fresh variables.
-fn fresh_list(st : SearchState, k : Int) -> Term {
+fn fresh_list(st : SearchState, k : Int32) -> Term {
   let elems : Array[Term] = []
   for _i in (0).until(k) {
     elems.push(Var("~_g\{st.next_var}"))
@@ -283,7 +283,7 @@ fn append_solutions(
           if elems_a.length() > elems_c.length() {
             return []
           }
-          fn unify_prefix(i : Int, b : Bindings) -> Bindings? {
+          fn unify_prefix(i : Int32, b : Bindings) -> Bindings? {
             if i >= elems_a.length() {
               Some(b)
             } else {

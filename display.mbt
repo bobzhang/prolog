@@ -17,7 +17,7 @@ fn term_write(t : Term) -> String {
 
 ///|
 /// Infix display table: `(tightness, left-context, right-context)`.
-fn infix_display(op : String) -> (Int, Int, Int)? {
+fn infix_display(op : String) -> (Int32, Int32, Int32)? {
   match op {
     ";" => Some((400, 401, 400))
     "," => Some((500, 501, 500))
@@ -46,7 +46,7 @@ fn is_prefix_functor(f : String) -> Bool {
 ///|
 fn fmt_term(
   t : Term,
-  prec : Int,
+  prec : Int32,
   quote : Bool,
   rename : Map[String, String],
 ) -> String {
@@ -115,7 +115,7 @@ fn fmt_term(
 ///|
 fn fmt_list(
   t : Term,
-  _prec : Int,
+  _prec : Int32,
   quote : Bool,
   rename : Map[String, String],
 ) -> String {

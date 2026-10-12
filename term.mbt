@@ -6,7 +6,7 @@ pub enum Term {
   /// Atom.
   Atom(String)
   /// Integer number.
-  Int(Int)
+  Int(Int32)
   /// Floating-point number.
   Float(Double)
   /// String.
@@ -30,7 +30,7 @@ pub fn empty_list() -> Term {
 ///|
 /// Build a proper list `[a, b, c]` from elements.
 pub fn list(elems : ArrayView[Term]) -> Term {
-  fn go(i : Int) -> Term {
+  fn go(i : Int32) -> Term {
     if i >= elems.length() {
       Atom("[]")
     } else {
@@ -97,7 +97,7 @@ pub fn atom(name : String) -> Term {
 
 ///|
 /// Construct an integer term.
-pub fn int(value : Int) -> Term {
+pub fn int(value : Int32) -> Term {
   Int(value)
 }
 

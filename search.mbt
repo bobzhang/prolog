@@ -11,12 +11,12 @@
 priv enum Choice {
   /// Try clause `idx` of predicate f/arity for goal `g`, restoring the
   /// bindings, depth, and remaining goals captured when it was pushed.
-  Clause(String, Int, Int, Term, Array[(Term, Int)], Bindings, Int)
+  Clause(String, Int32, Int32, Term, Array[(Term, Int32)], Bindings, Int32)
   /// Continue with an alternative goal (disjunction branch / call), at its
   /// original depth.
-  Goal(Term, Array[(Term, Int)], Bindings, Int)
+  Goal(Term, Array[(Term, Int32)], Bindings, Int32)
   /// Try the `idx`-th precomputed solution of a built-in predicate.
-  Solutions(Array[Bindings], Int, Array[(Term, Int)])
+  Solutions(Array[Bindings], Int32, Array[(Term, Int32)])
   /// Cut barrier: cut removes choice points up to and including it.
   Barrier
 }
@@ -27,9 +27,9 @@ priv enum Choice {
 /// returning `false` stops the search immediately.
 fn run_search(
   prog : Program,
-  goals0 : Array[(Term, Int)],
+  goals0 : Array[(Term, Int32)],
   binds0 : Bindings,
-  limit : Int,
+  limit : Int32,
   opts : Options,
   st : SearchState,
   emit : (Bindings) -> Bool,
@@ -40,7 +40,15 @@ fn run_search(
   let choices : Array[Choice] = []
   // A clause to try next: functor, arity, clause index, goal, remaining
   // goals, bindings to restore, dispatch depth.
-  let mut pending : (String, Int, Int, Term, Array[(Term, Int)], Bindings, Int)? = None
+  let mut pending : (
+    String,
+    Int32,
+    Int32,
+    Term,
+    Array[(Term, Int32)],
+    Bindings,
+    Int32,
+  )? = None
   let mut done = false
 
   fn backtrack() -> Unit {
@@ -79,7 +87,7 @@ fn run_search(
 
   fn multi_solutions(
     sols : Array[Bindings],
-    rest : Array[(Term, Int)],
+    rest : Array[(Term, Int32)],
   ) -> Unit {
     if sols.is_empty() {
       backtrack()
@@ -98,8 +106,8 @@ fn run_search(
     f : String,
     args : Array[Term],
     g : Term,
-    rest : Array[(Term, Int)],
-    gdepth : Int,
+    rest : Array[(Term, Int32)],
+    gdepth : Int32,
   ) -> Unit {
     let arity = args.length()
     let clauses = prog.clauses.get("\{f}/\{arity}").unwrap_or([])
@@ -144,7 +152,7 @@ fn run_search(
               choices.push(Clause(f, ar, idx + 1, g, rest, b0, d0))
             }
             binds = b2
-            let ng : Array[(Term, Int)] = [(c.body, d0 + 1)]
+            let ng : Array[(Term, Int32)] = [(c.body, d0 + 1)]
             for r in rest {
               ng.push(r)
             }

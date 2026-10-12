@@ -5,8 +5,8 @@
 ///|
 /// Internal search state, shared through the continuation-passing search.
 priv struct SearchState {
-  mut steps : Int
-  mut next_var : Int
+  mut steps : Int32
+  mut next_var : Int32
   mut solutions : Array[Bindings]
   mut out : Array[String]
   mut completion : Completion
@@ -15,7 +15,7 @@ priv struct SearchState {
   mut truncated_by_depth : Bool
   /// Monotonic counter bumped each time a bound cuts the search short; lets
   /// nested searches (negation-as-failure) detect their own truncation.
-  mut truncation_epoch : Int
+  mut truncation_epoch : Int32
 }
 
 ///|
@@ -79,7 +79,7 @@ fn unify_args(
   xs : Array[Term],
   ys : Array[Term],
 ) -> Bindings? {
-  fn go(i : Int, b : Bindings) -> Bindings? {
+  fn go(i : Int32, b : Bindings) -> Bindings? {
     if i >= xs.length() {
       Some(b)
     } else {
@@ -166,7 +166,7 @@ fn is_ground(binds : Bindings, t : Term) -> Bool {
 }
 
 ///|
-fn rename_clause(c : Clause, id : Int) -> Clause {
+fn rename_clause(c : Clause, id : Int32) -> Clause {
   fn go(t : Term) -> Term {
     match t {
       Var(n) => Var("~\{n}_\{id}")
@@ -226,7 +226,7 @@ pub fn Program::query_with(
     true
   }
   let mut best : (Array[Bindings], Array[String], Completion)? = None
-  fn run_round(limit : Int) -> Unit raise PrologError {
+  fn run_round(limit : Int32) -> Unit raise PrologError {
     st.solutions = []
     st.out = []
     st.completion = Completion::Complete

@@ -8,7 +8,8 @@ import {
 // Values
 
 // Errors
-type CliError derive(@debug.Debug)
+#derive(@debug.Debug)
+type CliError
 
 // Types and methods
 

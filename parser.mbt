@@ -1,5 +1,6 @@
 ///|
 /// Lexer token kinds.
+#derive(Eq, Debug)
 enum TokKind {
   Atom(String)
   Var(String)
@@ -16,7 +17,7 @@ enum TokKind {
   Dot
   Op(String)
   Eof
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend TokKind with Eq::{not_equal, equal}

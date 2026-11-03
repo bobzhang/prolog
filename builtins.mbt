@@ -3,10 +3,11 @@
 
 ///|
 /// An arithmetic value: integer or float.
+#derive(Eq, Debug)
 enum Num {
   I(Int32)
   F(Double)
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Num with Eq::{not_equal, equal}

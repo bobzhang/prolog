@@ -1,9 +1,10 @@
 ///|
 /// A small Prolog interpreter: loads an optional program file and answers
 /// queries given with `--query` or read from standard input.
+#derive(Debug)
 suberror CliError {
   Msg(String)
-} derive(Debug)
+}
 
 ///|
 async fn main {

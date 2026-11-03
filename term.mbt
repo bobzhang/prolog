@@ -1,5 +1,6 @@
 ///|
 /// A Prolog term.
+#derive(Eq, Debug)
 pub enum Term {
   /// Named variable.
   Var(String)
@@ -13,7 +14,7 @@ pub enum Term {
   Str(String)
   /// Compound term `functor(arg1, arg2, ...)`.
   Compound(String, Array[Term])
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Term with Eq::{not_equal, equal}

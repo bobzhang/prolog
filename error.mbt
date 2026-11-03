@@ -1,11 +1,12 @@
 ///|
 /// Errors raised by the Prolog parser and evaluator.
+#derive(Debug)
 pub suberror PrologError {
   /// Parse error message, including line and column information.
   Parse(String)
   /// Evaluation error: arithmetic, instantiation, or type failures.
   Eval(String)
-} derive(Debug)
+}
 
 ///|
 pub extend PrologError with Debug::{to_repr}

@@ -120,6 +120,7 @@ fn Bindings::set(self : Bindings, name : String, t : Term) -> Bindings {
 
 ///|
 /// Why a search stopped short of full exploration.
+#derive(Eq, Debug)
 pub enum Completion {
   /// Every reachable answer was emitted.
   Complete
@@ -131,7 +132,7 @@ pub enum Completion {
   Solutions
   /// A negated sub-search was cut off, so the result is unknown.
   IncompleteNegation
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Completion with Eq::{not_equal, equal}

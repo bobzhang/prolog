@@ -1,8 +1,9 @@
 ///|
 /// Blackbox tests for the Prolog interpreter's public API.
+#derive(Debug)
 suberror TestFailure {
   Msg(String)
-} derive(Debug)
+}
 
 ///|
 fn result(

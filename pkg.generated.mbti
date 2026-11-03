@@ -16,7 +16,7 @@ pub fn empty_list() -> Term
 
 pub fn float(Double) -> Term
 
-pub fn int(Int) -> Term
+pub fn int(Int32) -> Term
 
 pub fn list(ArrayView[Term]) -> Term
 
@@ -25,10 +25,11 @@ pub fn str(String) -> Term
 pub fn variable(String) -> Term
 
 // Errors
+#derive(@debug.Debug)
 pub suberror PrologError {
   Parse(String)
   Eval(String)
-} derive(@debug.Debug)
+}
 pub fn PrologError::message(Self) -> String
 pub fn PrologError::to_repr(Self) -> @debug.Repr
 
@@ -47,29 +48,31 @@ pub struct Clause {
   body : Term
 }
 
+#derive(Eq, @debug.Debug)
 pub enum Completion {
   Complete
   Depth
   Steps
   Solutions
   IncompleteNegation
-} derive(Eq, @debug.Debug)
+}
 pub fn Completion::equal(Self, Self) -> Bool
 pub fn Completion::not_equal(Self, Self) -> Bool
 pub fn Completion::to_repr(Self) -> @debug.Repr
 
-type Num derive(Eq, @debug.Debug)
+#derive(Eq, @debug.Debug)
+type Num
 pub fn Num::equal(Self, Self) -> Bool
 pub fn Num::not_equal(Self, Self) -> Bool
 pub fn Num::to_repr(Self) -> @debug.Repr
 
 pub struct Options {
-  max_depth : Int
+  max_depth : Int32
   ilds : Bool
-  max_steps : Int
-  max_solutions : Int
+  max_steps : Int32
+  max_solutions : Int32
 }
-pub fn Options::make(Int, Bool, Int, Int) -> Self
+pub fn Options::make(Int32, Bool, Int32, Int32) -> Self
 pub fn Options::new() -> Self
 
 pub struct Program {
@@ -89,14 +92,15 @@ pub fn QueryResult::answer_lines(Self) -> Array[String]
 pub fn QueryResult::completion_name(Self) -> String
 pub fn QueryResult::is_complete(Self) -> Bool
 
+#derive(Eq, @debug.Debug)
 pub enum Term {
   Var(String)
   Atom(String)
-  Int(Int)
+  Int(Int32)
   Float(Double)
   Str(String)
   Compound(String, Array[Term])
-} derive(Eq, @debug.Debug)
+}
 pub fn Term::equal(Self, Self) -> Bool
 pub fn Term::free_vars(Self) -> Array[String]
 pub fn Term::is_list(Self) -> Bool
@@ -105,7 +109,8 @@ pub fn Term::parse(String) -> Self raise PrologError
 pub fn Term::to_repr(Self) -> @debug.Repr
 pub fn Term::to_string(Self) -> String
 
-type TokKind derive(Eq, @debug.Debug)
+#derive(Eq, @debug.Debug)
+type TokKind
 pub fn TokKind::equal(Self, Self) -> Bool
 pub fn TokKind::not_equal(Self, Self) -> Bool
 pub fn TokKind::to_repr(Self) -> @debug.Repr

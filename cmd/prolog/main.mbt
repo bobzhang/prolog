@@ -7,7 +7,7 @@ suberror CliError {
 }
 
 ///|
-async fn main {
+async fn main_async() -> Unit {
   let code = run() catch {
     CliError::Msg(msg) => {
       ignore(@stdio.stderr.write("\{msg}\n") catch { _ => () })
@@ -328,4 +328,9 @@ async fn repl(program : @lib.Program, opts : @lib.Options) -> Unit noraise {
       }
     }
   }
+}
+
+///|
+fn main {
+  @async.run_async_main(main_async)
 }

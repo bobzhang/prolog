@@ -1,6 +1,6 @@
 import {
-  "bobzhang/prolog" @lib,
   "moonbitlang/async",
+  "bobzhang/prolog" @lib,
   "moonbitlang/async/fs",
   "moonbitlang/async/stdio",
   "moonbitlang/core/argparse",

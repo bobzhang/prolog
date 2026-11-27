@@ -6,7 +6,7 @@
 //
 // Or manually declare it in `import`, for example:
 // import {
-//   "moonbitlang/x@0.4.6",
+//   "moonbitlang/x@0.5.9",
 // }
 
 name = "bobzhang/prolog"
@@ -32,6 +32,6 @@ preferred_target = "wasm"
 description = "A small Prolog interpreter in MoonBit: SLD resolution with iterative deepening, cut, negation-as-failure, arithmetic, and list built-ins."
 
 import {
-  "moonbitlang/async@0.22.4",
-  "moonbitlang/x@0.5.1",
+  "moonbitlang/async@0.22.10",
+  "moonbitlang/x@0.5.9",
 }

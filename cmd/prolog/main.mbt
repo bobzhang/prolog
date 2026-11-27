@@ -11,11 +11,11 @@ async fn main_async() -> Unit {
   let code = run() catch {
     CliError::Msg(msg) => {
       ignore(@stdio.stderr.write("\{msg}\n") catch { _ => () })
-      @sys.exit(2)
+      @env.exit(2)
       fail("unreachable")
     }
   }
-  @sys.exit(code)
+  @env.exit(code)
 }
 
 ///|
